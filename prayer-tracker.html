@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prayer Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f4;color:#1a1a18;font-size:16px;}
+.app{max-width:680px;margin:0 auto;padding:1rem;}
+h1{font-size:18px;font-weight:500;margin-bottom:4px;}
+.subtitle{font-size:13px;color:#888780;margin-bottom:1rem;}
+.tabs{display:flex;border-bottom:1px solid #e5e5e3;margin-bottom:1.5rem;flex-wrap:wrap;}
+.tab{padding:8px 16px;font-size:14px;cursor:pointer;border-bottom:2px solid transparent;color:#888780;background:none;border-top:none;border-left:none;border-right:none;}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18;font-weight:500;}
+.section{display:none;}.section.active{display:block;}
+.card{background:#fff;border:1px solid #e5e5e3;border-radius:12px;padding:10px 14px;margin-bottom:8px;}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.25rem;}
+.metric{background:#f5f5f4;border-radius:8px;padding:10px;text-align:center;}
+.metric-val{font-size:20px;font-weight:500;}
+.metric-label{font-size:11px;color:#888780;margin-top:2px;}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.slabel{font-size:11px;color:#888780;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin:1.25rem 0 8px;}
+.slabel:first-child{margin-top:0;}
+.badge{font-size:11px;padding:2px 7px;border-radius:8px;font-weight:500;white-space:nowrap;}
+.b-active{background:#EAF3DE;color:#3B6D11;}
+.b-la{background:#FAEEDA;color:#854F0B;}
+.b-inactive{background:#F1EFE8;color:#5F5E5A;}
+.b-decline{background:#FBEAF0;color:#993556;}
+.b-recent{background:#FCEBEB;color:#A32D2D;}
+.b-never{background:#EAF3DE;color:#3B6D11;}
+.b-ok{background:#E6F1FB;color:#185FA5;}
+.b-youth{background:#EEEDFE;color:#534AB7;}
+.b-adult{background:#F1EFE8;color:#5F5E5A;}
+.b-followup{background:#FCEBEB;color:#A32D2D;}
+.b-mission{background:#E6F1FB;color:#185FA5;}
+.b-away{background:#F1EFE8;color:#5F5E5A;}
+.b-topick{background:#EAF3DE;color:#3B6D11;}
+.b-moved{background:#F1EFE8;color:#8A8880;}
+.b-deceased{background:#EDECEA;color:#5F5E5A;}
+input,select,textarea{font-family:inherit;font-size:14px;padding:7px 10px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#1a1a18;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#888780;}
+button{font-family:inherit;font-size:13px;padding:7px 16px;border:1px solid #d3d1c7;border-radius:8px;background:#fff;color:#1a1a18;cursor:pointer;}
+button:hover{background:#f5f5f4;}
+.status-sel{font-size:12px;padding:3px 6px;border-radius:8px;border:1px solid #d3d1c7;}
+.del-btn{font-size:11px;color:#b4b2a9;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.del-btn:hover{color:#A32D2D;background:#FCEBEB;}
+.empty-state{text-align:center;padding:2rem;color:#888780;font-size:14px;}
+.assignment-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e5e5e3;}
+.assignment-row:last-child{border-bottom:none;}
+.phone-link{font-size:13px;color:#185FA5;text-decoration:none;}
+.phone-link:hover{text-decoration:underline;}
+.member-detail{border-top:1px solid #e5e5e3;margin-top:10px;padding-top:10px;display:none;}
+.member-detail.open{display:block;}
+.field-label{font-size:12px;color:#888780;width:72px;flex-shrink:0;}
+.note-text{font-size:13px;color:#888780;font-style:italic;margin-top:4px;line-height:1.5;}
+.field-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.field-row:last-child{margin-bottom:0;}
+textarea{width:100%;resize:vertical;min-height:56px;line-height:1.5;}
+.combo-wrap{position:relative;flex:1;min-width:0;}
+.combo-input{width:100%;padding-right:28px;font-size:13px;}
+.combo-clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:#b4b2a9;font-size:18px;cursor:pointer;padding:0 6px;border-radius:4px;line-height:1;display:none;}
+.combo-clear:hover{color:#A32D2D;background:#FCEBEB;}
+.combo-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #d3d1c7;border-radius:8px;margin-top:2px;max-height:240px;overflow-y:auto;z-index:10;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+.combo-option{padding:7px 10px;font-size:13px;cursor:pointer;border-bottom:1px solid #f5f5f4;}
+.combo-option:last-child{border-bottom:none;}
+.combo-option:hover,.combo-option.active{background:#f5f5f4;}
+.combo-empty{padding:7px 10px;font-size:13px;color:#888780;font-style:italic;}
+@media(max-width:500px){
+  .metric-grid{grid-template-columns:repeat(2,1fr);}
+  .tabs .tab{padding:8px 10px;font-size:13px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1rem;">
+    <div>
+      <h1>Prayer tracker</h1>
+      <div class="subtitle" id="week-display"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('suggest')">Suggest</button>
+    <button class="tab" onclick="showTab('log')">Log prayer</button>
+    <button class="tab" onclick="showTab('followup')">Follow-up</button>
+    <button class="tab" onclick="showTab('training')">Training</button>
+    <button class="tab" onclick="showTab('roster')">Roster</button>
+  </div>
+
+  <div id="suggest" class="section active">
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-val" id="m-active">0</div><div class="metric-label">active adults</div></div>
+      <div class="metric"><div class="metric-val" id="m-youth">0</div><div class="metric-label">active youth</div></div>
+      <div class="metric"><div class="metric-val" id="m-la">0</div><div class="metric-label">less active</div></div>
+      <div class="metric"><div class="metric-val" id="m-other">0</div><div class="metric-label">inactive/decline</div></div>
+    </div>
+    <div id="youth-banner"></div>
+    <div class="slabel">Youth (ages 8–20)</div>
+    <div id="youth-suggestions"></div>
+    <div class="slabel">Adults</div>
+    <div id="adult-suggestions"></div>
+    <div style="margin-top:1rem;font-size:12px;color:#888780;">Tap a card to see phone number and notes. Pick any two for opening and closing.</div>
+  </div>
+
+  <div id="log" class="section">
+    <div class="card" style="padding:1rem 1.25rem;margin-bottom:1rem;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:12px;">This week's assignments</div>
+      <div class="assignment-row">
+        <div style="width:90px;font-size:13px;color:#888780;">Opening</div>
+        <div class="combo-wrap">
+          <input type="text" class="combo-input" id="log-opening-input" placeholder="Search name..." autocomplete="off"/>
+          <button type="button" class="combo-clear" id="log-opening-clear" title="Clear">×</button>
+          <div class="combo-dropdown" id="log-opening-dropdown"></div>
+          <input type="hidden" id="log-opening"/>
+        </div>
+      </div>
+      <div class="assignment-row" style="border-bottom:none;">
+        <div style="width:90px;font-size:13px;color:#888780;">Closing</div>
+        <div class="combo-wrap">
+          <input type="text" class="combo-input" id="log-closing-input" placeholder="Search name..." autocomplete="off"/>
+          <button type="button" class="combo-clear" id="log-closing-clear" title="Clear">×</button>
+          <div class="combo-dropdown" id="log-closing-dropdown"></div>
+          <input type="hidden" id="log-closing"/>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        <input type="date" id="log-date" style="flex:1;font-size:13px;"/>
+        <button onclick="saveLog()">Save</button>
+      </div>
+      <div id="log-feedback" style="font-size:12px;color:#888780;text-align:right;margin-top:4px;min-height:18px;"></div>
+    </div>
+  </div>
+
+  <div id="followup" class="section">
+    <div id="followup-due"></div>
+    <div id="followup-upcoming"></div>
+    <div id="followup-all"></div>
+    <div id="followup-empty" class="empty-state" style="display:none;">No follow-ups scheduled.</div>
+  </div>
+
+  <div id="training" class="section"></div>
+
+  <div id="roster" class="section">
+    <div class="card" style="padding:1rem 1.25rem;margin-bottom:1rem;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:10px;">Add member</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input type="text" id="new-first" placeholder="First name" style="flex:1;"/>
+        <input type="text" id="new-last" placeholder="Last name" style="flex:1;"/>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input type="tel" id="new-phone" placeholder="Phone number" style="flex:1;"/>
+        <input type="date" id="new-dob" style="flex:1;font-size:13px;"/>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <select id="new-status" style="flex:1;">
+          <option value="active">Active</option>
+          <option value="lessactive">Less active</option>
+          <option value="inactive">Inactive</option>
+          <option value="decline">Prefer not to</option>
+          <option value="mission">Mission</option>
+          <option value="away">Away</option>
+          <option value="moved">Moved out</option>
+          <option value="deceased">Deceased</option>
+        </select>
+        <button onclick="addMember()">Add</button>
+      </div>
+    </div>
+    <div id="dup-warning" style="display:none;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+      <input type="text" id="roster-search" placeholder="Search name, phone, notes..." oninput="renderRoster()" style="flex:1;min-width:140px;"/>
+      <select id="roster-sort" onchange="renderRoster()" style="font-size:13px;">
+        <option value="last-asked">Sort: last asked (oldest first)</option>
+        <option value="last-asked-desc">Sort: last asked (recent first)</option>
+        <option value="name">Sort: name (A→Z)</option>
+        <option value="name-desc">Sort: name (Z→A)</option>
+        <option value="age-asc">Sort: age (young→old)</option>
+        <option value="age-desc">Sort: age (old→young)</option>
+        <option value="status">Sort: status (active first)</option>
+        <option value="status-desc">Sort: status (least active first)</option>
+        <option value="calling-desc">Sort: calling (with calling first)</option>
+        <option value="calling-asc">Sort: calling (without calling first)</option>
+      </select>
+    </div>
+    <div id="roster-chips" style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;"></div>
+    <div id="roster-list"></div>
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #e5e5e3;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px;">Import from Google Sheets</div>
+      <div style="font-size:13px;color:#888780;margin-bottom:10px;">Select all rows in your sheet (including the header row), copy, and paste below. Expects columns: Name, Gender, Age, Phone, Last Prayer.</div>
+      <textarea id="paste-import" placeholder="Paste your Google Sheets data here..." style="width:100%;min-height:90px;font-size:12px;font-family:monospace;" oninput="previewPaste()"></textarea>
+      <div id="paste-preview" style="display:none;margin-top:10px;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px;"><span id="paste-count">0</span> rows detected — <span id="paste-new-count">0</span> new members<span id="paste-return-note"></span></div>
+        <div style="overflow-x:auto;margin-bottom:10px;max-height:220px;overflow-y:auto;">
+          <table id="paste-table" style="width:100%;font-size:12px;border-collapse:collapse;"></table>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="font-size:13px;color:#888780;">Default status:</span>
+          <select id="paste-default-status" style="font-size:13px;" onchange="previewPaste()">
+            <option value="active">Active</option>
+            <option value="lessactive">Less active</option>
+            <option value="inactive">Inactive</option>
+            <option value="decline">Prefer not to</option>
+            <option value="mission">Mission</option>
+            <option value="away">Away</option>
+          </select>
+          <span style="font-size:12px;color:#888780;">(adjust individuals in roster after)</span>
+        </div>
+        <div id="paste-missing-wrap" style="display:none;margin-bottom:10px;padding:10px 12px;background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;">
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer;">
+            <input type="checkbox" id="paste-full-directory" onchange="previewPaste()" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;cursor:pointer;"/>
+            <span>This paste is the <strong>complete</strong> ward directory — check roster members who are missing from it and mark them moved out.</span>
+          </label>
+          <div id="paste-missing-list" style="display:none;margin-top:10px;"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="confirmPasteImport()">Confirm import</button>
+          <button onclick="cancelPaste()">Cancel</button>
+        </div>
+        <div id="paste-feedback" style="font-size:12px;color:#3B6D11;margin-top:6px;min-height:16px;"></div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #e5e5e3;">
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px;">Import callings list</div>
+      <div style="font-size:13px;color:#888780;margin-bottom:10px;">Flags roster members who hold a calling. Calling-holders who've never been asked to pray are prioritized in suggestions. Each import replaces the prior calling flags. Paste columns ending with: …, Organization, Calling.</div>
+      <textarea id="callings-import" placeholder="Paste callings list here..." style="width:100%;min-height:90px;font-size:12px;font-family:monospace;" oninput="previewCallings()"></textarea>
+      <div id="callings-preview" style="display:none;margin-top:10px;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px;"><span id="callings-rows">0</span> rows · <span id="callings-people">0</span> people · <span id="callings-matched">0</span> matched in roster</div>
+        <div id="callings-unmatched-list" style="font-size:12px;color:#888780;margin-bottom:10px;max-height:140px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="confirmCallingsImport()">Confirm</button>
+          <button onclick="cancelCallings()">Cancel</button>
+        </div>
+        <div id="callings-feedback" style="font-size:12px;color:#3B6D11;margin-top:6px;min-height:16px;"></div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #e5e5e3;">
+      <div style="font-size:13px;color:#888780;margin-bottom:8px;">Backup &amp; restore</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="exportData()" style="font-size:12px;">Export data (JSON)</button>
+        <button onclick="document.getElementById('import-json').click()" style="font-size:12px;">Import data (JSON)</button>
+        <input type="file" id="import-json" accept=".json" onchange="importData(event)" style="display:none;"/>
+        <button onclick="resetAllData()" style="font-size:12px;color:#A32D2D;border-color:#F7C1C1;">Reset all data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AV_BG=['#E1F5EE','#EEEDFE','#E6F1FB','#FAEEDA','#EAF3DE','#FBEAF0'];
+const AV_TC=['#0F6E56','#534AB7','#185FA5','#854F0B','#3B6D11','#993556'];
+const STATUS_LABELS={active:'Active',lessactive:'Less active',inactive:'Inactive',decline:'Prefer not to',mission:'Mission',away:'Away',moved:'Moved out',deceased:'Deceased'};
+const STATUS_BADGE={active:'b-active',lessactive:'b-la',inactive:'b-inactive',decline:'b-decline',mission:'b-mission',away:'b-away',moved:'b-moved',deceased:'b-deceased'};
+// Statuses that mean "no longer in the ward" — never chased for follow-up, never
+// re-evaluated as absentees when a new directory is imported.
+const GONE_STATUSES=['moved','deceased'];
+const FOLLOWUP_YEARS=2;
+const YPT_LEAD_DAYS=30;
+const YPT_DEFAULT_SUBJECT='Action needed: Protecting Children and Youth Training Renewal';
+const YPT_DEFAULT_LINK='https://www.churchofjesuschrist.org/callings/safety/protecting-children-and-youth?lang=eng';
+const YPT_DEFAULT_TEMPLATE=`Dear Brothers and Sisters,
+
+Our records show that your Protecting Children and Youth training is due to be completed or renewed.
+
+All adults who work with children or youth are required to complete the Children and Youth Protection Training. All other adults are encouraged to complete this training. The training must be renewed every three years.
+
+The course takes about 25 minutes to complete and can be done online at the link below:
+
+\u{1F449} **[Protecting Children and Youth Training]({link})**
+
+Once completed, your record will automatically update. If you experience any issues accessing or confirming completion, please let me know.
+
+Thank you for your willingness to serve and for helping us provide a safe and uplifting environment for our youth.
+
+[Your name]
+[Your phone number]`;
+const LS_KEY='ward-prayer-tracker-v1';
+
+let state={members:[],log:[]};
+
+function uid(){return Math.random().toString(36).slice(2,9);}
+function today(){return new Date().toISOString().slice(0,10);}
+function initials(m){return((m.first||'?')[0]+(m.last||'?')[0]).toUpperCase();}
+function avatarColor(id){const i=Math.abs(id.split('').reduce((a,c)=>a+c.charCodeAt(0),0))%AV_BG.length;return[AV_BG[i],AV_TC[i]];}
+function fmtDate(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function calcAge(dob){
+  if(!dob)return null;
+  const b=new Date(dob+'T12:00:00'),n=new Date();
+  let a=n.getFullYear()-b.getFullYear();
+  if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;
+  return a;
+}
+function ageOn(dob,onDate){
+  if(!dob||!onDate)return null;
+  const b=new Date(dob+'T12:00:00'),n=new Date(onDate+'T12:00:00');
+  let a=n.getFullYear()-b.getFullYear();
+  if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--;
+  return a;
+}
+// Age stops at the date of death rather than counting up forever.
+function memberAge(m){
+  if(!m||!m.dob)return null;
+  if(m.status==='deceased'&&m.deceasedDate)return ageOn(m.dob,m.deceasedDate);
+  return calcAge(m.dob);
+}
+function isYouth(m){const a=memberAge(m);return a!==null&&a>=8&&a<=20;}
+function isAdult(m){const a=memberAge(m);return a===null||a>20;}
+function weeksSince(d){if(!d)return null;return Math.round((new Date()-new Date(d))/(7*24*60*60*1000));}
+function addYears(d,y){const dt=new Date(d);dt.setFullYear(dt.getFullYear()+y);return dt.toISOString().slice(0,10);}
+function fmtPhone(p){
+  if(!p)return null;
+  const d=p.replace(/\D/g,'');
+  if(d.length===10)return'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6);
+  if(d.length===11&&d[0]==='1')return'('+d.slice(1,4)+') '+d.slice(4,7)+'-'+d.slice(7);
+  return p;
+}
+
+// Directory exports tack a "Not Baptized" label onto the name cell, which copies
+// through as part of the name ("Smith, John MichaelNot Baptized").
+const NOT_BAPTIZED_STRIP=/\s*(not\s*bapti[sz]ed|unbapti[sz]ed)\s*/ig;
+const NOT_BAPTIZED_TEST=/(not\s*bapti[sz]ed|unbapti[sz]ed)/i;
+function stripNameMarkers(s){return String(s||'').replace(NOT_BAPTIZED_STRIP,' ').replace(/\s+/g,' ').trim();}
+function hasNotBaptizedMarker(s){return NOT_BAPTIZED_TEST.test(String(s||''));}
+
+function loadState(){
+  try{const r=localStorage.getItem(LS_KEY);if(r)state=JSON.parse(r);}catch(e){}
+  if(!state.members)state.members=[];
+  if(!state.log)state.log=[];
+  if(!state.ypt)state.ypt={};
+  if(state.ypt.subject==null)state.ypt.subject=YPT_DEFAULT_SUBJECT;
+  if(state.ypt.link==null)state.ypt.link=YPT_DEFAULT_LINK;
+  if(state.ypt.template==null)state.ypt.template=YPT_DEFAULT_TEMPLATE;
+  if(state.ypt.lastSent===undefined)state.ypt.lastSent=null;
+  // Clean names imported before the marker was handled, so a later baptism
+  // matches the existing record instead of creating a second one.
+  let cleaned=false;
+  state.members.forEach(m=>{
+    const f=stripNameMarkers(m.first)||m.first;
+    const l=stripNameMarkers(m.last)||m.last;
+    if(f!==m.first||l!==m.last){
+      m.first=f;m.last=l;
+      if(m.notBaptized===undefined)m.notBaptized=true;
+      cleaned=true;
+    }
+  });
+  if(cleaned)saveState();
+}
+function saveState(){
+  try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){alert('Storage error: '+e.message);}
+}
+
+function resetAllData(){
+  if(!confirm('This will permanently delete all members, history, and logs. Export a backup first if needed. Continue?'))return;
+  if(!confirm('Are you sure? This cannot be undone.'))return;
+  state={members:[],log:[]};
+  saveState();
+  renderSuggestions();
+  populateLogSelects();
+  renderRoster();
+  alert('All data cleared.');
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='prayer-tracker-backup-'+today()+'.json';a.click();
+}
+function importData(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const d=JSON.parse(e.target.result);
+      if(d.members&&d.log){
+        if(confirm('This will replace all current data. Continue?')){
+          state=d;saveState();
+          renderSuggestions();populateLogSelects();renderRoster();
+          alert('Data imported successfully.');
+        }
+      }else{alert('Invalid backup file.');}
+    }catch(err){alert('Could not read file: '+err.message);}
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function lastAsked(id){
+  const e=state.log.filter(e=>e.opening===id||e.closing===id).sort((a,b)=>b.date.localeCompare(a.date));
+  const logDate=e.length?e[0].date:null;
+  const m=state.members.find(m=>m.id===id);
+  const refDate=m&&m.lastPrayerRef?m.lastPrayerRef:null;
+  if(logDate&&refDate)return logDate>refDate?logDate:refDate;
+  return logDate||refDate||null;
+}
+function getMemberName(id){const m=state.members.find(m=>m.id===id);return m?m.first+' '+m.last:'—';}
+function youthThisMonth(){
+  const ym=new Date().toISOString().slice(0,7);
+  return state.log.filter(e=>{
+    if(!e.date.startsWith(ym))return false;
+    const mo=state.members.find(m=>m.id===e.opening);
+    const mc=state.members.find(m=>m.id===e.closing);
+    return (mo&&isYouth(mo))||(mc&&isYouth(mc));
+  }).length;
+}
+function fmtWeeks(w){
+  if(w<52)return w+'w';
+  const y=Math.floor(w/52);
+  const wk=w%52;
+  return wk>0?y+'y '+wk+'w':y+'y';
+}
+function weekBadge(last, status){
+  const inactive=['inactive','lessactive','decline','mission','away','moved','deceased'];
+  if(inactive.includes(status))return[last?fmtWeeks(weeksSince(last)):'Never','b-inactive'];
+  if(!last)return['Never asked','b-never'];
+  const w=weeksSince(last);
+  if(w<20)return[fmtWeeks(w),'b-recent'];
+  if(w<60)return[fmtWeeks(w),'b-ok'];
+  return[fmtWeeks(w),'b-never'];
+}
+
+function showTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active',['suggest','log','followup','training','roster'][i]===tab);
+  });
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  if(tab==='suggest')renderSuggestions();
+  if(tab==='log')populateLogSelects();
+  if(tab==='followup')renderFollowUp();
+  if(tab==='training')renderTraining();
+  if(tab==='roster'){if(window._renderChips)window._renderChips();renderRoster();}
+}
+
+function toggleDetail(id){
+  const el=document.getElementById('detail-'+id);
+  if(el)el.classList.toggle('open');
+}
+
+function jumpToRoster(id){
+  // switch to roster tab
+  showTab('roster');
+  // wait for render then scroll to and open that member's panel
+  setTimeout(()=>{
+    const panel=document.getElementById('rp-'+id);
+    if(!panel)return;
+    // close any open panels, open this one
+    document.querySelectorAll('[id^="rp-"]').forEach(p=>{p.style.display='none';});
+    panel.style.display='block';
+    // scroll the row into view
+    panel.scrollIntoView({behavior:'smooth',block:'center'});
+    // briefly highlight the row
+    const row=panel.previousElementSibling;
+    if(row){row.style.background='#EAF3DE';setTimeout(()=>{row.style.background='';},1200);}
+  },80);
+}
+
+function makeSuggestCard(m,isTop,topLabel){
+  const[bg,tc]=avatarColor(m.id);
+  const[bt,bc]=weekBadge(m._last,m.status);
+  const age=memberAge(m);
+  const phone=fmtPhone(m.phone);
+  const metaParts=[];
+  if(age!==null)metaParts.push('Age '+age);
+  if(m.hasCalling)metaParts.push('<span style="color:#534AB7;">●</span> calling');
+  const metaLine=metaParts.length?'<div style="font-size:12px;color:#888780;">'+metaParts.join(' · ')+'</div>':'';
+  const div=document.createElement('div');
+  div.className='card';div.style.cursor='pointer';
+  div.onclick=()=>toggleDetail(m.id);
+  div.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="avatar" style="background:${bg};color:${tc};">${initials(m)}</div>
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:500;">${m.first} ${m.last}</div>
+        ${metaLine}
+      </div>
+      <span class="badge ${bc}">${bt}</span>
+      <span style="font-size:16px;color:#b4b2a9;margin-left:2px;">›</span>
+    </div>
+    <div class="member-detail" id="detail-${m.id}">
+      ${phone?'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:12px;color:#888780;width:52px;">Phone</span><a href="tel:'+m.phone+'" class="phone-link" onclick="event.stopPropagation();">'+phone+'</a></div>':'<div style="font-size:12px;color:#888780;margin-bottom:8px;">No phone number on file</div>'}
+      ${m.notes?'<div style="font-size:12px;color:#888780;margin-bottom:2px;">Notes</div><div class="note-text">'+escHtml(m.notes)+'</div>':'<div style="font-size:12px;color:#b4b2a9;">No notes</div>'}
+      <div style="margin-top:10px;border-top:1px solid #e5e5e3;padding-top:8px;" id="edit-btn-${m.id}">
+        <button onclick="event.stopPropagation();jumpToRoster(this.dataset.mid)" data-mid="${m.id}" style="font-size:12px;padding:4px 10px;">Edit in roster</button>
+      </div>
+    </div>`;
+  return div;
+}
+
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderSuggestions(){
+  const activeAdults=state.members.filter(m=>m.status==='active'&&!m.notBaptized&&isAdult(m));
+  const activeYouth=state.members.filter(m=>m.status==='active'&&!m.notBaptized&&isYouth(m));
+  document.getElementById('m-active').textContent=activeAdults.length;
+  document.getElementById('m-youth').textContent=activeYouth.length;
+  document.getElementById('m-la').textContent=state.members.filter(m=>m.status==='lessactive').length;
+  document.getElementById('m-other').textContent=state.members.filter(m=>['inactive','decline','mission','away'].includes(m.status)).length;
+
+  const yc=youthThisMonth();
+  const banner=document.getElementById('youth-banner');
+  if(yc>=2)banner.innerHTML='<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#3B6D11;">Youth goal met this month ('+yc+' so far).</div>';
+  else if(yc===1)banner.innerHTML='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#854F0B;">1 youth prayer this month — goal is 1–2.</div>';
+  else banner.innerHTML='<div style="background:#FCEBEB;border:1px solid #F7C1C1;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#A32D2D;">No youth prayers yet this month.</div>';
+
+  // Build suggestion pool: 3 never-asked + 3 random from top-20 oldest, deduplicated
+  function buildPool(list, exclude, neverCount, oldestPool, oldestPick){
+    const pool=list
+      .filter(m=>!exclude.includes(m.id))
+      .map(m=>({...m,_last:lastAsked(m.id)}))
+      .sort((a,b)=>{
+        if(!a._last&&!b._last)return 0;
+        if(!a._last)return -1;
+        if(!b._last)return 1;
+        return a._last.localeCompare(b._last);
+      });
+    const neverPool=pool.filter(m=>!m._last);
+    const callingNever=neverPool.filter(m=>m.hasCalling).sort(()=>Math.random()-0.5);
+    const otherNever=neverPool.filter(m=>!m.hasCalling).sort(()=>Math.random()-0.5);
+    const neverAll=[...callingNever,...otherNever];
+    const never=neverAll.slice(0,neverCount);
+    const neverIds=new Set(never.map(m=>m.id));
+    const shortfall=neverCount-never.length;
+    const topN=pool.filter(m=>m._last&&!neverIds.has(m.id)).slice(0,oldestPool);
+    const picked=[...topN].sort(()=>Math.random()-0.5).slice(0,oldestPick+shortfall);
+    return [...never,...picked];
+  }
+
+  function renderBlock(pool, containerId){
+    const el=document.getElementById(containerId);el.innerHTML='';
+    if(!pool.length){el.innerHTML='<div class="empty-state">None available.</div>';return;}
+    pool.forEach(m=>el.appendChild(makeSuggestCard(m,false,'')));
+  }
+
+  // only include adults asked 52+ weeks ago in the oldest pool
+  const adultEligible=activeAdults.filter(m=>{const w=weeksSince(lastAsked(m.id));return w===null||w>=52;});
+  const adultOldestPool=Math.max(5,Math.round(adultEligible.length*0.10));
+  const adultPool=buildPool(adultEligible,[],5,adultOldestPool,5);  // 5 never + 5 from top 10% of 52w+
+  // youth: exclude anyone asked in last 20 weeks (red/blue), then top 10% pool
+  const eligibleYouth=activeYouth.filter(m=>{const w=weeksSince(lastAsked(m.id));return w===null||w>=60;});
+  const youthOldestPool=Math.max(3,Math.round(eligibleYouth.length*0.20));
+  const youthPool=buildPool(eligibleYouth,[],3,youthOldestPool,3);  // 3 never + 3 from top 10%
+
+  renderBlock(youthPool,'youth-suggestions');
+  renderBlock(adultPool,'adult-suggestions');
+}
+
+let _comboMembers=[];
+function populateLogSelects(){
+  _comboMembers=state.members.filter(m=>m.status==='active').sort((a,b)=>a.last.localeCompare(b.last));
+  ['opening','closing'].forEach(role=>{
+    const hidden=document.getElementById('log-'+role);
+    const input=document.getElementById('log-'+role+'-input');
+    const clearBtn=document.getElementById('log-'+role+'-clear');
+    if(hidden.value){
+      const m=state.members.find(x=>x.id===hidden.value);
+      if(m){input.value=m.first+' '+m.last;clearBtn.style.display='inline-block';}
+      else{hidden.value='';input.value='';clearBtn.style.display='none';}
+    }
+  });
+  document.getElementById('log-date').value=today();
+}
+
+function setupLogCombo(role){
+  const input=document.getElementById('log-'+role+'-input');
+  const dropdown=document.getElementById('log-'+role+'-dropdown');
+  const hidden=document.getElementById('log-'+role);
+  const clearBtn=document.getElementById('log-'+role+'-clear');
+  let activeIdx=-1;
+  function render(){
+    const q=input.value.toLowerCase().trim();
+    const matches=_comboMembers.filter(m=>{
+      if(!q)return true;
+      const txt=(m.first+' '+m.last+' '+(m.phone||'')).toLowerCase();
+      return txt.includes(q);
+    });
+    dropdown.innerHTML='';activeIdx=-1;
+    if(!matches.length){
+      const e=document.createElement('div');e.className='combo-empty';e.textContent='No matches';
+      dropdown.appendChild(e);
+    }else{
+      matches.forEach(m=>{
+        const age=memberAge(m);
+        const opt=document.createElement('div');
+        opt.className='combo-option';
+        opt.dataset.mid=m.id;
+        opt.textContent=m.first+' '+m.last+(age!==null?' ('+age+')':'');
+        opt.addEventListener('mousedown',ev=>{ev.preventDefault();select(m);});
+        dropdown.appendChild(opt);
+      });
+    }
+    dropdown.style.display='block';
+  }
+  function select(m){
+    hidden.value=m.id;
+    input.value=m.first+' '+m.last;
+    clearBtn.style.display='inline-block';
+    dropdown.style.display='none';
+  }
+  function updateActive(){
+    const opts=dropdown.querySelectorAll('.combo-option');
+    opts.forEach((o,i)=>o.classList.toggle('active',i===activeIdx));
+    if(opts[activeIdx])opts[activeIdx].scrollIntoView({block:'nearest'});
+  }
+  input.addEventListener('focus',render);
+  input.addEventListener('input',()=>{
+    if(hidden.value){hidden.value='';clearBtn.style.display='none';}
+    render();
+  });
+  input.addEventListener('blur',()=>{setTimeout(()=>{dropdown.style.display='none';},150);});
+  input.addEventListener('keydown',(e)=>{
+    const opts=dropdown.querySelectorAll('.combo-option');
+    if(e.key==='ArrowDown'){e.preventDefault();if(opts.length){activeIdx=Math.min(activeIdx+1,opts.length-1);updateActive();}}
+    else if(e.key==='ArrowUp'){e.preventDefault();if(opts.length){activeIdx=Math.max(activeIdx-1,0);updateActive();}}
+    else if(e.key==='Enter'&&activeIdx>=0&&opts[activeIdx]){
+      e.preventDefault();
+      const mid=opts[activeIdx].dataset.mid;
+      const m=_comboMembers.find(x=>x.id===mid);
+      if(m)select(m);
+    }
+    else if(e.key==='Escape'){dropdown.style.display='none';input.blur();}
+  });
+  clearBtn.addEventListener('click',()=>{
+    hidden.value='';input.value='';clearBtn.style.display='none';input.focus();
+  });
+}
+
+function saveLog(){
+  const opening=document.getElementById('log-opening').value;
+  const closing=document.getElementById('log-closing').value;
+  const date=document.getElementById('log-date').value;
+  if(!date||(!opening&&!closing)){document.getElementById('log-feedback').textContent='Select at least one member and a date.';return;}
+  const idx=state.log.findIndex(e=>e.date===date);
+  const entry={date,opening:opening||null,closing:closing||null};
+  if(idx>=0)state.log[idx]=entry;else state.log.push(entry);
+  state.log.sort((a,b)=>b.date.localeCompare(a.date));
+  saveState();
+  document.getElementById('log-feedback').textContent='Saved for '+fmtDate(date);
+  setTimeout(()=>{document.getElementById('log-feedback').textContent='';},3000);
+}
+
+function renderFollowUp(){
+  const dueEl=document.getElementById('followup-due');
+  const upEl=document.getElementById('followup-upcoming');
+  const allEl=document.getElementById('followup-all');
+  const emEl=document.getElementById('followup-empty');
+  dueEl.innerHTML='';upEl.innerHTML='';allEl.innerHTML='';
+
+  const nonActive=state.members.filter(m=>(m.status==='lessactive'||m.status==='inactive')&&m.statusDate);
+  const tempAway=state.members.filter(m=>m.status==='mission'||m.status==='away');
+  const declineList=state.members.filter(m=>m.status==='decline');
+  emEl.style.display='none';
+
+  const due=[],upcoming=[],rest=[];
+  nonActive.forEach(m=>{
+    if(!m.statusDate){rest.push({...m,fd:null,days:null});return;}
+    const fd=m.followupOverride||addYears(m.statusDate,FOLLOWUP_YEARS);
+    const days=Math.round((new Date(fd)-new Date())/(24*60*60*1000));
+    if(days<=0)due.push({...m,fd,days});
+    else if(days<=90)upcoming.push({...m,fd,days});
+    else rest.push({...m,fd,days});
+  });
+
+  function fuCard(m,overdue){
+    const[bg,tc]=avatarColor(m.id);
+    const age=memberAge(m);
+    const phone=fmtPhone(m.phone);
+    const fuDate=m.followupOverride||(m.statusDate?addYears(m.statusDate,FOLLOWUP_YEARS):null);
+
+    const wrap=document.createElement('div');
+    wrap.style.cssText=(overdue?'background:#FCEBEB;border:1px solid #F7C1C1;':'background:#fff;border:1px solid #e5e5e3;')+'border-radius:12px;margin-bottom:8px;overflow:hidden;';
+
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;';
+    row.addEventListener('click',()=>{
+      const p=wrap.querySelector('.fu-panel');
+      if(p)p.style.display=p.style.display==='none'?'block':'none';
+    });
+
+    const av=document.createElement('div');
+    av.className='avatar';av.style.cssText='background:'+bg+';color:'+tc+';';
+    av.textContent=initials(m);row.appendChild(av);
+
+    const info=document.createElement('div');info.style.flex='1';
+    const name=document.createElement('div');
+    name.style.cssText='font-size:15px;font-weight:500;';
+    name.textContent=m.first+' '+m.last+(age!==null?' · age '+age:'');
+    info.appendChild(name);
+    const sub=document.createElement('div');
+    sub.style.cssText='font-size:12px;color:'+(overdue?'#A32D2D':'#888780')+';';
+    sub.textContent=STATUS_LABELS[m.status]+(m.statusDate?' since '+fmtDate(m.statusDate):'— no status date set');
+    info.appendChild(sub);
+    row.appendChild(info);
+
+    const badge=document.createElement('span');
+    if(overdue){
+      badge.className='badge b-followup';badge.textContent='overdue';
+    }else if(m.days!=null){
+      badge.className='badge '+(m.days<=90?'b-la':'b-ok');
+      badge.textContent=m.days+'d';
+    }else{
+      badge.className='badge '+(STATUS_BADGE[m.status]||'b-ok');
+      badge.textContent=STATUS_LABELS[m.status]||'no date';
+    }
+    row.appendChild(badge);
+    wrap.appendChild(row);
+
+    // Edit panel
+    const panel=document.createElement('div');
+    panel.className='fu-panel';
+    panel.style.cssText='display:none;padding:10px 14px 14px;border-top:1px solid #e5e5e3;background:#fafaf9;';
+
+    // Phone
+    if(phone){
+      const ph=document.createElement('div');
+      ph.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:10px;';
+      const pl=document.createElement('span');pl.style.cssText='font-size:12px;color:#888780;width:90px;';pl.textContent='Phone';
+      const pa=document.createElement('a');pa.href='tel:'+m.phone;pa.className='phone-link';pa.textContent=phone;
+      pa.addEventListener('click',e=>e.stopPropagation());
+      ph.appendChild(pl);ph.appendChild(pa);panel.appendChild(ph);
+    }
+
+    // Status date
+    const sdRow=document.createElement('div');
+    sdRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;';
+    const sdLbl=document.createElement('span');sdLbl.style.cssText='font-size:12px;color:#888780;width:90px;';sdLbl.textContent='Status date';
+    const sdIn=document.createElement('input');
+    sdIn.type='date';sdIn.value=m.statusDate||'';
+    sdIn.style.cssText='font-size:13px;padding:3px 8px;';
+    sdIn.addEventListener('change',()=>{
+      updateField(m.id,'statusDate',sdIn.value);
+      // clear override so it recalculates from new statusDate
+      if(!fuOverIn.value)updateField(m.id,'followupOverride',null);
+      renderFollowUp();
+    });
+    sdRow.appendChild(sdLbl);sdRow.appendChild(sdIn);panel.appendChild(sdRow);
+
+    // Follow-up date override
+    const fuRow=document.createElement('div');
+    fuRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;';
+    const fuLbl=document.createElement('span');fuLbl.style.cssText='font-size:12px;color:#888780;width:90px;';fuLbl.textContent='Follow-up date';
+    const fuOverIn=document.createElement('input');
+    fuOverIn.type='date';fuOverIn.value=m.followupOverride||'';
+    fuOverIn.placeholder=fuDate?fmtDate(fuDate):'set status date first';
+    fuOverIn.style.cssText='font-size:13px;padding:3px 8px;';
+    fuOverIn.title='Leave blank to auto-calculate (status date + 2 years)';
+    fuOverIn.addEventListener('change',()=>{
+      updateField(m.id,'followupOverride',fuOverIn.value||null);
+      renderFollowUp();
+    });
+    const fuHint=document.createElement('span');
+    fuHint.style.cssText='font-size:11px;color:#b4b2a9;';
+    fuHint.textContent='leave blank for auto (status + 2yr)';
+    fuRow.appendChild(fuLbl);fuRow.appendChild(fuOverIn);fuRow.appendChild(fuHint);panel.appendChild(fuRow);
+
+    // Notes
+    if(m.notes){
+      const nl=document.createElement('div');nl.style.cssText='font-size:12px;color:#888780;margin-bottom:2px;';nl.textContent='Notes';
+      const nv=document.createElement('div');nv.className='note-text';nv.textContent=m.notes;
+      panel.appendChild(nl);panel.appendChild(nv);
+    }
+
+    // Jump to roster
+    const jBtn=document.createElement('button');
+    jBtn.textContent='Edit in roster';
+    jBtn.style.cssText='margin-top:10px;font-size:12px;padding:4px 10px;';
+    jBtn.dataset.mid=m.id;
+    jBtn.addEventListener('click',()=>jumpToRoster(m.id));
+    panel.appendChild(jBtn);
+
+    wrap.appendChild(panel);
+    return wrap;
+  }
+
+  if(tempAway.length){
+    const h=document.createElement('div');h.className='slabel';h.style.marginTop='0';
+    h.textContent='On mission or away ('+tempAway.length+')';dueEl.appendChild(h);
+    tempAway.sort((a,b)=>a.last.localeCompare(b.last)).forEach(m=>dueEl.appendChild(fuCard(m,false)));
+    const div=document.createElement('div');div.style.cssText='margin-bottom:1rem;';dueEl.appendChild(div);
+  }
+  if(declineList.length){
+    const h=document.createElement('div');h.className='slabel';h.style.marginTop=tempAway.length?'':'0';
+    h.textContent='Prefer not to pray ('+declineList.length+')';dueEl.appendChild(h);
+    declineList.sort((a,b)=>a.last.localeCompare(b.last)).forEach(m=>dueEl.appendChild(fuCard(m,false)));
+    const div=document.createElement('div');div.style.cssText='margin-bottom:1rem;';dueEl.appendChild(div);
+  }
+  if(due.length){
+    const h=document.createElement('div');h.className='slabel';h.style.marginTop=(tempAway.length||declineList.length)?'':'0';
+    h.textContent='Follow-up due ('+due.length+')';dueEl.appendChild(h);
+    due.forEach(m=>dueEl.appendChild(fuCard(m,true)));
+  }
+  if(upcoming.length){
+    const h=document.createElement('div');h.className='slabel';
+    h.textContent='Coming up within 90 days ('+upcoming.length+')';upEl.appendChild(h);
+    upcoming.sort((a,b)=>a.days-b.days).forEach(m=>upEl.appendChild(fuCard(m,false)));
+  }
+  if(!due.length&&!upcoming.length&&!tempAway.length&&!declineList.length){
+    const hint=document.createElement('div');
+    hint.style.cssText='font-size:13px;color:#888780;padding:1rem 0;';
+    hint.textContent='No follow-ups scheduled. Set a status date on a member in the roster to start tracking them here.';
+    allEl.appendChild(hint);
+  }
+}
+
+function renderHistory(){
+  const el=document.getElementById('history-list');el.innerHTML='';
+  if(!state.log.length){el.innerHTML='<div class="empty-state">No history yet.</div>';return;}
+  [...state.log].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,24).forEach(e=>{
+    const div=document.createElement('div');div.className='card';div.style.cssText='padding:10px 14px;margin-bottom:8px;';
+    div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+      +'<div style="font-size:14px;font-weight:500;">'+fmtDate(e.date)+'</div>'
+      +'<button class="del-btn" onclick="deleteLog(\''+e.date+'\')">remove</button></div>'
+      +(e.opening?'<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span class="badge opening-tag">opening</span><span style="font-size:14px;">'+getMemberName(e.opening)+'</span></div>':'')
+      +(e.closing?'<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span class="badge closing-tag">closing</span><span style="font-size:14px;">'+getMemberName(e.closing)+'</span></div>':'')
+      +(e.youth?'<div style="display:flex;gap:8px;align-items:center;"><span class="badge youth-tag">youth</span><span style="font-size:14px;">'+getMemberName(e.youth)+'</span></div>':'');
+    el.appendChild(div);
+  });
+}
+function deleteLog(date){state.log=state.log.filter(e=>e.date!==date);saveState();renderHistory();}
+
+function logCount(id){return state.log.filter(e=>e.opening===id||e.closing===id).length;}
+
+// Same person twice — typically one record from before baptism (now flagged moved
+// out, since the pre-baptism name vanished from the directory) and one from after.
+function findDuplicateMembers(){
+  const byKey=new Map();
+  state.members.forEach(m=>{
+    const k=(m.first+'|'+m.last).toLowerCase().replace(/\s+/g,' ').trim();
+    if(!byKey.has(k))byKey.set(k,[]);
+    byKey.get(k).push(m);
+  });
+  return [...byKey.values()].filter(g=>g.length>1);
+}
+
+function mergeMembers(ids){
+  const group=ids.map(id=>state.members.find(m=>m.id===id)).filter(Boolean);
+  if(group.length<2)return null;
+  // keep the live record; break ties by who carries more prayer history
+  const survivor=[...group].sort((a,b)=>{
+    const am=a.status==='moved'?1:0,bm=b.status==='moved'?1:0;
+    if(am!==bm)return am-bm;
+    return logCount(b.id)-logCount(a.id);
+  })[0];
+  group.filter(m=>m!==survivor).forEach(dup=>{
+    state.log.forEach(e=>{
+      if(e.opening===dup.id)e.opening=survivor.id;
+      if(e.closing===dup.id)e.closing=survivor.id;
+    });
+    ['phone','email','dob','notes'].forEach(f=>{if(!survivor[f]&&dup[f])survivor[f]=dup[f];});
+    if(dup.lastPrayerRef&&(!survivor.lastPrayerRef||dup.lastPrayerRef>survivor.lastPrayerRef))survivor.lastPrayerRef=dup.lastPrayerRef;
+    if(dup.hasCalling)survivor.hasCalling=true;
+    state.members=state.members.filter(m=>m.id!==dup.id);
+  });
+  // only still unbaptized if every copy said so
+  survivor.notBaptized=group.every(m=>!!m.notBaptized);
+  if(survivor.notBaptized===false)delete survivor.notBaptized;
+  return survivor;
+}
+
+function mergeDuplicates(idsStr){
+  const ids=idsStr.split(',');
+  if(!confirm('Merge these into one record? Prayer history from both is kept on the surviving record.'))return;
+  mergeMembers(ids);
+  saveState();
+  renderRoster();
+  renderSuggestions();
+}
+
+function renderDuplicates(){
+  const el=document.getElementById('dup-warning');if(!el)return;
+  const groups=findDuplicateMembers();
+  if(!groups.length){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='block';
+  el.innerHTML='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;padding:10px 12px;margin-bottom:10px;">'
+    +'<div style="font-size:13px;font-weight:500;margin-bottom:4px;">'+groups.length+' duplicate record'+(groups.length!==1?'s':'')+'</div>'
+    +'<div style="font-size:11px;color:#854F0B;margin-bottom:8px;">Usually one person imported twice — once before baptism and once after. Merging keeps the prayer history from both.</div>'
+    +groups.map(g=>{
+      const ids=g.map(m=>m.id).join(',');
+      const detail=g.map(m=>STATUS_LABELS[m.status]+(logCount(m.id)?', '+logCount(m.id)+' logged':'')).join(' + ');
+      return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;">'
+        +'<span style="flex:1;font-size:13px;">'+escHtml(g[0].first+' '+g[0].last)
+        +' <span style="font-size:11px;color:#888780;">('+escHtml(detail)+')</span></span>'
+        +'<button type="button" onclick="mergeDuplicates(\''+ids+'\')" style="font-size:11px;padding:2px 10px;">Merge</button></div>';
+    }).join('')
+    +'</div>';
+}
+
+function renderRoster(){
+  renderDuplicates();
+  const search=(document.getElementById('roster-search')?.value||'').toLowerCase();
+
+  const el=document.getElementById('roster-list');el.innerHTML='';
+  const rf=window._rosterFilters||{status:'all',age:'all',special:'',calling:false};
+  const filtered=state.members.filter(m=>{
+    const txt=(m.first+' '+m.last+' '+(m.phone||'')+' '+(m.notes||'')).toLowerCase();
+    if(!txt.includes(search))return false;
+    if(rf.status!=='all'&&m.status!==rf.status)return false;
+    if(rf.age==='youth'&&!isYouth(m))return false;
+    if(rf.age==='adult'&&!isAdult(m))return false;
+    if(rf.special==='never'&&lastAsked(m.id)!==null)return false;
+    if(rf.special==='notbaptized'&&!m.notBaptized)return false;
+    if(rf.calling&&!m.hasCalling)return false;
+    return true;
+  });
+  const sortBy=document.getElementById('roster-sort')?.value||'last-asked';
+  const STATUS_ORDER={active:0,lessactive:1,inactive:2,decline:3,moved:4,deceased:5};
+  filtered.sort((a,b)=>{
+    if(sortBy==='last-asked'){
+      const la=lastAsked(a.id), lb=lastAsked(b.id);
+      if(!la&&!lb)return a.last.localeCompare(b.last);
+      if(!la)return -1; if(!lb)return 1;
+      return la.localeCompare(lb);
+    }
+    if(sortBy==='last-asked-desc'){
+      const la=lastAsked(a.id), lb=lastAsked(b.id);
+      if(!la&&!lb)return a.last.localeCompare(b.last);
+      if(!la)return 1; if(!lb)return -1;
+      return lb.localeCompare(la);
+    }
+    if(sortBy==='age-asc'){
+      const aa=calcAge(a.dob), ab=calcAge(b.dob);
+      if(aa===null&&ab===null)return a.last.localeCompare(b.last);
+      if(aa===null)return 1; if(ab===null)return -1;
+      return aa-ab;
+    }
+    if(sortBy==='age-desc'){
+      const aa=calcAge(a.dob), ab=calcAge(b.dob);
+      if(aa===null&&ab===null)return a.last.localeCompare(b.last);
+      if(aa===null)return 1; if(ab===null)return -1;
+      return ab-aa;
+    }
+    if(sortBy==='status'){
+      const diff=(STATUS_ORDER[a.status]||0)-(STATUS_ORDER[b.status]||0);
+      return diff!==0?diff:a.last.localeCompare(b.last);
+    }
+    if(sortBy==='status-desc'){
+      const diff=(STATUS_ORDER[b.status]||0)-(STATUS_ORDER[a.status]||0);
+      return diff!==0?diff:a.last.localeCompare(b.last);
+    }
+    if(sortBy==='calling-desc'){
+      const ca=a.hasCalling?1:0, cb=b.hasCalling?1:0;
+      return ca!==cb?cb-ca:a.last.localeCompare(b.last);
+    }
+    if(sortBy==='calling-asc'){
+      const ca=a.hasCalling?1:0, cb=b.hasCalling?1:0;
+      return ca!==cb?ca-cb:a.last.localeCompare(b.last);
+    }
+    if(sortBy==='name-desc')return b.last.localeCompare(a.last);
+    return a.last.localeCompare(b.last);
+  });
+
+  if(!filtered.length){el.innerHTML='<div class="empty-state">No members found.</div>';return;}
+
+  const wrap=document.createElement('div');
+  wrap.style.cssText='background:#fff;border:1px solid #e5e5e3;border-radius:12px;overflow:hidden;margin-bottom:8px;';
+
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:grid;grid-template-columns:1fr 82px 84px 40px 36px 24px;padding:5px 12px;background:#f5f5f4;border-bottom:1px solid #e5e5e3;';
+  const SORT_INFO={
+    'name':           {col:'name',       dir:'asc',  flip:'name-desc'},
+    'name-desc':      {col:'name',       dir:'desc', flip:'name'},
+    'last-asked':     {col:'last-asked', dir:'asc',  flip:'last-asked-desc'},
+    'last-asked-desc':{col:'last-asked', dir:'desc', flip:'last-asked'},
+    'age-asc':        {col:'age',        dir:'asc',  flip:'age-desc'},
+    'age-desc':       {col:'age',        dir:'desc', flip:'age-asc'},
+    'status':         {col:'status',     dir:'asc',  flip:'status-desc'},
+    'status-desc':    {col:'status',     dir:'desc', flip:'status'},
+    'calling-desc':   {col:'calling',    dir:'desc', flip:'calling-asc'},
+    'calling-asc':    {col:'calling',    dir:'asc',  flip:'calling-desc'}
+  };
+  function hdrCell(label, defaultSortVal){
+    const d=document.createElement('div');
+    const sel=document.getElementById('roster-sort');
+    const cur=sel?.value||'name';
+    const curInfo=SORT_INFO[cur]||{col:cur,dir:'asc'};
+    const defInfo=SORT_INFO[defaultSortVal]||{col:defaultSortVal,dir:'asc'};
+    const isActive=curInfo.col===defInfo.col;
+    const arrow=isActive?(curInfo.dir==='asc'?' ↑':' ↓'):'';
+    d.style.cssText='font-size:11px;font-weight:500;color:'+(isActive?'#1a1a18':'#888780')+';text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none;';
+    d.textContent=label+arrow;
+    d.addEventListener('click',()=>{
+      if(!sel)return;
+      sel.value=isActive?(SORT_INFO[cur]?.flip||defaultSortVal):defaultSortVal;
+      renderRoster();
+    });
+    return d;
+  }
+  hdr.appendChild(hdrCell('Name','name'));
+  hdr.appendChild(hdrCell('Status','status'));
+  hdr.appendChild(hdrCell('Last asked','last-asked'));
+  hdr.appendChild(hdrCell('Age','age-asc'));
+  hdr.appendChild(hdrCell('Cal','calling-desc'));
+  hdr.appendChild(document.createElement('div'));
+  wrap.appendChild(hdr);
+
+  filtered.forEach((m,idx)=>{
+    const[bg,tc]=avatarColor(m.id);
+    const age=memberAge(m);
+    const youth=isYouth(m);
+    const[bt,bc]=weekBadge(lastAsked(m.id),m.status);
+    const phone=fmtPhone(m.phone);
+    const isLast=idx===filtered.length-1;
+
+    const rowWrap=document.createElement('div');
+    rowWrap.style.borderBottom=isLast?'none':'1px solid #f0f0ee';
+
+    // --- Summary row ---
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 82px 84px 40px 36px 24px;padding:7px 12px;cursor:pointer;align-items:center;';
+    row.dataset.mid=m.id;
+    row.addEventListener('mouseover',()=>{row.style.background='#fafaf9';});
+    row.addEventListener('mouseout',()=>{row.style.background='';});
+    row.addEventListener('click',()=>toggleRosterPanel(m.id));
+
+    const nameCell=document.createElement('div');
+    nameCell.style.cssText='display:flex;align-items:center;gap:7px;min-width:0;';
+    const av=document.createElement('div');
+    av.className='avatar';
+    av.style.cssText='background:'+bg+';color:'+tc+';width:26px;height:26px;font-size:10px;flex-shrink:0;';
+    av.textContent=initials(m);
+    const nameText=document.createElement('div');
+    nameText.style.minWidth='0';
+    const nameMain=document.createElement('div');
+    nameMain.style.cssText='font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    nameMain.textContent=m.first+' '+m.last;
+    nameText.appendChild(nameMain);
+    if(m.notes){
+      const notePrev=document.createElement('div');
+      notePrev.style.cssText='font-size:11px;color:#b4b2a9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;';
+      notePrev.textContent=m.notes;
+      nameText.appendChild(notePrev);
+    }
+    nameCell.appendChild(av);nameCell.appendChild(nameText);
+    if(m.notBaptized){
+      const nb=document.createElement('span');
+      nb.className='badge b-la';
+      nb.style.cssText='font-size:9px;padding:1px 5px;flex-shrink:0;';
+      nb.textContent='not bapt.';
+      nb.title='Not baptized — excluded from suggestions';
+      nameCell.appendChild(nb);
+    }
+    row.appendChild(nameCell);
+
+    const statusCell=document.createElement('div');
+    const sb=document.createElement('span');
+    sb.className='badge '+STATUS_BADGE[m.status];
+    sb.style.cssText='font-size:10px;padding:1px 5px;';
+    sb.textContent=STATUS_LABELS[m.status];
+    statusCell.appendChild(sb);
+
+    row.appendChild(statusCell);
+
+    const lastCell=document.createElement('div');
+    const lb=document.createElement('span');
+    lb.className='badge '+bc;
+    lb.style.cssText='font-size:10px;padding:1px 5px;';
+    lb.textContent=bt;
+    lastCell.appendChild(lb);
+    row.appendChild(lastCell);
+
+    const ageCell=document.createElement('div');
+    ageCell.style.cssText='font-size:13px;color:#888780;';
+    ageCell.textContent=age!==null?String(age):'—';
+    if(m.status==='deceased'&&m.deceasedDate&&age!==null)ageCell.title='Age at death ('+fmtDate(m.deceasedDate)+')';
+    row.appendChild(ageCell);
+
+    const callingCell=document.createElement('div');
+    callingCell.style.cssText='display:flex;align-items:center;justify-content:center;';
+    function paintCallingCell(on){
+      callingCell.innerHTML='';
+      if(on){
+        const dot=document.createElement('span');
+        dot.style.cssText='width:8px;height:8px;border-radius:50%;background:#534AB7;display:inline-block;';
+        dot.title='Has calling';
+        callingCell.appendChild(dot);
+      }
+    }
+    paintCallingCell(!!m.hasCalling);
+    row.appendChild(callingCell);
+
+    const delCell=document.createElement('div');
+    const delBtn=document.createElement('button');
+    delBtn.className='del-btn';
+    delBtn.title='Remove';
+    delBtn.style.cssText='padding:0 4px;font-size:14px;';
+    delBtn.textContent='×';
+    delBtn.dataset.mid=m.id;
+    delBtn.addEventListener('click',(e)=>{e.stopPropagation();removeMember(m.id);});
+    delCell.appendChild(delBtn);
+    row.appendChild(delCell);
+
+    // --- Edit panel ---
+    const panel=document.createElement('div');
+    panel.id='rp-'+m.id;
+    panel.style.cssText='display:none;padding:12px 14px 14px;border-top:1px solid #e5e5e3;background:#fafaf9;';
+
+    // Phone + Birthdate row
+    const grid1=document.createElement('div');
+    grid1.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;';
+
+    const phoneDiv=document.createElement('div');
+    const phoneLbl=document.createElement('div');
+    phoneLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    phoneLbl.textContent='Phone';
+    phoneDiv.appendChild(phoneLbl);
+    if(phone){
+      const pa=document.createElement('a');
+      pa.href='tel:'+m.phone;pa.className='phone-link';
+      pa.style.cssText='display:block;margin-bottom:4px;font-size:13px;';
+      pa.textContent=phone;
+      phoneDiv.appendChild(pa);
+    }
+    const phoneIn=document.createElement('input');
+    phoneIn.type='tel';phoneIn.value=m.phone||'';
+    phoneIn.placeholder='Add phone';
+    phoneIn.style.cssText='width:100%;font-size:13px;padding:5px 8px;';
+    phoneIn.addEventListener('change',()=>updateField(m.id,'phone',phoneIn.value));
+    phoneDiv.appendChild(phoneIn);
+    grid1.appendChild(phoneDiv);
+
+    // Email field in place of second grid1 col (birthdate moves to grid2)
+    const emailDiv=document.createElement('div');
+    const emailLbl=document.createElement('div');
+    emailLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    emailLbl.textContent='Email';
+    emailDiv.appendChild(emailLbl);
+    if(m.email){
+      const ea=document.createElement('a');
+      ea.href='mailto:'+m.email;ea.className='phone-link';
+      ea.style.cssText='display:block;margin-bottom:4px;font-size:13px;word-break:break-all;';
+      ea.textContent=m.email;
+      emailDiv.appendChild(ea);
+    }
+    const emailIn=document.createElement('input');
+    emailIn.type='email';emailIn.value=m.email||'';
+    emailIn.placeholder='Add email';
+    emailIn.style.cssText='width:100%;font-size:13px;padding:5px 8px;';
+    emailIn.addEventListener('change',()=>updateField(m.id,'email',emailIn.value));
+    emailDiv.appendChild(emailIn);
+    grid1.appendChild(emailDiv);
+
+    const dobDiv=document.createElement('div');
+    const dobLbl=document.createElement('div');
+    dobLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    dobLbl.textContent='Birthdate';
+    dobDiv.appendChild(dobLbl);
+    const dobIn=document.createElement('input');
+    dobIn.type='date';dobIn.value=m.dob||'';
+    dobIn.style.cssText='width:100%;font-size:13px;padding:5px 8px;';
+    dobIn.addEventListener('change',()=>{updateField(m.id,'dob',dobIn.value);renderRoster();});
+    dobDiv.appendChild(dobIn);
+    grid1.appendChild(dobDiv);
+    panel.appendChild(grid1);
+
+    // Status + last prayer ref + calling row
+    const grid2=document.createElement('div');
+    grid2.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;';
+
+    const statDiv=document.createElement('div');
+    const statLbl=document.createElement('div');
+    statLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    statLbl.textContent='Status';
+    statDiv.appendChild(statLbl);
+    const statSel=document.createElement('select');
+    statSel.style.cssText='width:100%;font-size:13px;padding:5px 8px;';
+    ['active','lessactive','inactive','decline','mission','away','moved','deceased'].forEach(v=>{
+      const o=document.createElement('option');
+      o.value=v;o.textContent=STATUS_LABELS[v];
+      if(m.status===v)o.selected=true;
+      statSel.appendChild(o);
+    });
+    statSel.addEventListener('change',()=>updateStatus(m.id,statSel.value));
+    statDiv.appendChild(statSel);
+    if(m.status!=='active'&&m.statusDate){
+      const fu=document.createElement('div');
+      fu.style.cssText='font-size:11px;color:#888780;margin-top:4px;';
+      fu.textContent='Follow-up: '+fmtDate(addYears(m.statusDate,FOLLOWUP_YEARS));
+      statDiv.appendChild(fu);
+    }else if(m.status==='moved'&&m.movedDate){
+      const mv=document.createElement('div');
+      mv.style.cssText='font-size:11px;color:#888780;margin-top:4px;';
+      mv.textContent='Flagged '+fmtDate(m.movedDate);
+      statDiv.appendChild(mv);
+    }else if(m.status==='deceased'){
+      const dLbl=document.createElement('div');
+      dLbl.style.cssText='font-size:11px;color:#888780;margin-top:6px;margin-bottom:2px;';
+      dLbl.textContent='Date of death';
+      const dIn=document.createElement('input');
+      dIn.type='date';dIn.value=m.deceasedDate||'';
+      dIn.style.cssText='width:100%;font-size:13px;padding:5px 8px;';
+      dIn.title='Age stops counting at this date';
+      dIn.addEventListener('change',()=>{updateField(m.id,'deceasedDate',dIn.value||null);renderRoster();});
+      statDiv.appendChild(dLbl);statDiv.appendChild(dIn);
+    }
+    grid2.appendChild(statDiv);
+
+    const refDiv=document.createElement('div');
+    const refLbl=document.createElement('div');
+    refLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    refLbl.textContent='Last prayer ref';
+    refDiv.appendChild(refLbl);
+    const refVal=document.createElement('div');
+    refVal.style.cssText='font-size:13px;color:#888780;padding-top:5px;';
+    refVal.textContent=m.lastPrayerRef?fmtDate(m.lastPrayerRef):'—';
+    refDiv.appendChild(refVal);
+    grid2.appendChild(refDiv);
+
+    const callDiv=document.createElement('div');
+    const callLbl=document.createElement('div');
+    callLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    callLbl.textContent='Calling';
+    callDiv.appendChild(callLbl);
+    const callRow=document.createElement('label');
+    callRow.style.cssText='display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#1a1a18;padding-top:5px;';
+    const callChk=document.createElement('input');
+    callChk.type='checkbox';
+    callChk.checked=!!m.hasCalling;
+    callChk.style.cssText='width:16px;height:16px;cursor:pointer;';
+    callChk.addEventListener('change',()=>{
+      updateField(m.id,'hasCalling',callChk.checked);
+      paintCallingCell(callChk.checked);
+    });
+    callRow.appendChild(callChk);
+    const callTxt=document.createElement('span');
+    callTxt.textContent='Has calling';
+    callRow.appendChild(callTxt);
+    callDiv.appendChild(callRow);
+
+    const nbRow=document.createElement('label');
+    nbRow.style.cssText='display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:#1a1a18;padding-top:6px;';
+    const nbChk=document.createElement('input');
+    nbChk.type='checkbox';
+    nbChk.checked=!!m.notBaptized;
+    nbChk.style.cssText='width:16px;height:16px;cursor:pointer;';
+    nbChk.title='Excluded from suggestions while checked';
+    nbChk.addEventListener('change',()=>{updateField(m.id,'notBaptized',nbChk.checked);renderRoster();});
+    nbRow.appendChild(nbChk);
+    const nbTxt=document.createElement('span');
+    nbTxt.textContent='Not baptized';
+    nbRow.appendChild(nbTxt);
+    callDiv.appendChild(nbRow);
+    grid2.appendChild(callDiv);
+
+    panel.appendChild(grid2);
+
+    // Notes
+    const notesDiv=document.createElement('div');
+    const notesLbl=document.createElement('div');
+    notesLbl.style.cssText='font-size:11px;color:#888780;margin-bottom:4px;';
+    notesLbl.textContent='Notes';
+    notesDiv.appendChild(notesLbl);
+    const notesTA=document.createElement('textarea');
+    notesTA.value=m.notes||'';
+    notesTA.placeholder='Notes about this member...';
+    notesTA.style.cssText='width:100%;font-size:13px;padding:6px 8px;min-height:52px;';
+    notesTA.addEventListener('change',()=>updateField(m.id,'notes',notesTA.value));
+    notesDiv.appendChild(notesTA);
+    panel.appendChild(notesDiv);
+
+    rowWrap.appendChild(row);
+    rowWrap.appendChild(panel);
+    wrap.appendChild(rowWrap);
+  });
+
+  el.appendChild(wrap);
+  el.insertAdjacentHTML('afterbegin','<div style="font-size:12px;color:#888780;margin-bottom:6px;">'+filtered.length+' member'+(filtered.length!==1?'s':'')+' · click a row to edit</div>');
+}
+
+
+function toggleRosterPanel(id){
+  const panel=document.getElementById('rp-'+id);
+  if(!panel)return;
+  const open=panel.style.display!=='none';
+  document.querySelectorAll('[id^="rp-"]').forEach(p=>{p.style.display='none';});
+  if(!open)panel.style.display='block';
+}
+
+function updateField(id,field,val){
+  const m=state.members.find(m=>m.id===id);
+  if(m){m[field]=val;saveState();}
+}
+function updateStatus(id,val){
+  const m=state.members.find(m=>m.id===id);if(!m)return;
+  const wasActive=m.status==='active';
+  m.status=val;
+  const noFollowup=['active','mission','away','moved','deceased'];
+  if(!noFollowup.includes(val)&&(wasActive||!m.statusDate))m.statusDate=today();
+  if(noFollowup.includes(val))m.statusDate=null;
+  if(val==='moved'&&!m.movedDate)m.movedDate=today();
+  if(val!=='moved')m.movedDate=null;
+  if(val==='deceased'&&!m.deceasedDate)m.deceasedDate=today();
+  if(val!=='deceased')m.deceasedDate=null;
+  saveState();renderRoster();
+}
+function removeMember(id){
+  if(!confirm('Remove this member?'))return;
+  state.members=state.members.filter(m=>m.id!==id);saveState();renderRoster();
+}
+function addMember(){
+  const first=document.getElementById('new-first').value.trim();
+  const last=document.getElementById('new-last').value.trim();
+  if(!first||!last){alert('First and last name are required.');return;}
+  const phone=document.getElementById('new-phone').value.trim();
+  const dob=document.getElementById('new-dob').value||null;
+  const status=document.getElementById('new-status').value;
+  state.members.push({id:uid(),first,last,phone,dob,status,statusDate:status!=='active'?today():null,notes:''});
+  saveState();
+  ['new-first','new-last','new-phone','new-dob'].forEach(i=>document.getElementById(i).value='');
+  renderRoster();
+}
+
+let parsedPasteRows=[];
+
+function parseDobString(s, ageHint){
+  if(!s)return null;
+  const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  function resolveYear(y2, mon, day){
+    // 4-digit year: use as-is
+    if(y2>=100)return y2;
+    // use ageHint to pick correct century: try 1900s first, check if age matches
+    const now=new Date();
+    let year1900=y2+1900;
+    let year2000=y2+2000;
+    if(ageHint!=null){
+      // calculate what age each century gives
+      const age1900=now.getFullYear()-year1900-(now<new Date(now.getFullYear(),mon,day)?1:0);
+      const age2000=now.getFullYear()-year2000-(now<new Date(now.getFullYear(),mon,day)?1:0);
+      // pick whichever is within 1 year of the hint
+      if(Math.abs(age2000-ageHint)<=1)return year2000;
+      if(Math.abs(age1900-ageHint)<=1)return year1900;
+      // fallback: pick closest
+      return Math.abs(age2000-ageHint)<Math.abs(age1900-ageHint)?year2000:year1900;
+    }
+    // no hint: 00-29 => 2000s, 30-99 => 1900s
+    return y2<30?year2000:year1900;
+  }
+  // "10-May-45", "24-Apr-10", "21-Feb-1949" etc.
+  const m1=s.match(/^(\d{1,2})[-\/\s]([a-zA-Z]{3,9})[-\/\s](\d{2,4})$/);
+  if(m1){
+    const day=parseInt(m1[1]);
+    const mon=months[m1[2].toLowerCase().slice(0,3)];
+    const rawYear=parseInt(m1[3]);
+    if(mon===undefined)return null;
+    const year=resolveYear(rawYear,mon,day);
+    const d=new Date(year,mon,day,12);
+    if(!isNaN(d))return d.toISOString().slice(0,10);
+  }
+  // "May 10, 1945", "10 May 1945"
+  const m2=s.match(/([a-zA-Z]{3,9})\s+(\d{1,2}),?\s+(\d{2,4})/);
+  if(m2){
+    const mon=months[m2[1].toLowerCase().slice(0,3)];
+    const day=parseInt(m2[2]);
+    const rawYear=parseInt(m2[3]);
+    if(mon===undefined)return null;
+    const year=resolveYear(rawYear,mon,day);
+    const d=new Date(year,mon,day,12);
+    if(!isNaN(d))return d.toISOString().slice(0,10);
+  }
+  // standard parse fallback
+  const d1=new Date(s);
+  if(!isNaN(d1)&&d1.getFullYear()>1900)return d1.toISOString().slice(0,10);
+  return null;
+}
+
+function parsePasteData(raw){
+  const lines=raw.split('\n').map(l=>l.trimEnd()).filter(l=>l.trim());
+  if(lines.length<2)return[];
+  const headers=lines[0].split('\t').map(h=>h.trim().toLowerCase());
+  const ni=headers.findIndex(h=>h.includes('name'));
+  const gi=headers.findIndex(h=>h.includes('gender')||h==='g'||h==='sex');
+  const ai=headers.findIndex(h=>h==='age'||h.includes('age')&&!h.includes('birth'));
+  const pi=headers.findIndex(h=>h.includes('phone')||h.includes('mobile')||h.includes('cell')||h.includes('number'));
+  const li=headers.findIndex(h=>h.includes('last prayer')||h.includes('prayer'));
+  const bi=headers.findIndex(h=>h.includes('birth')||h.includes('dob')||h.includes('birthday'));
+  const ei=headers.findIndex(h=>h.includes('email')||h.includes('e-mail'));
+  const rows=[];
+  lines.slice(1).forEach(line=>{
+    const cols=line.split('\t').map(c=>c.trim());
+    if(!cols[ni<0?0:ni])return;
+    const rawName=cols[ni<0?0:ni]||'';
+    const notBaptized=hasNotBaptizedMarker(rawName);
+    const cleanName=stripNameMarkers(rawName);
+    let first='',last='';
+    if(cleanName.includes(',')){
+      const p=cleanName.split(',');last=p[0].trim();first=p.slice(1).join(',').trim();}
+    else{const p=cleanName.split(' ');last=p[p.length-1];first=p.slice(0,-1).join(' ');}
+    const phone=pi>=0?(cols[pi]||''):'';
+    const email=ei>=0?(cols[ei]||''):'';
+    const ageVal=ai>=0?parseInt(cols[ai]):NaN;
+    const lastPrayer=li>=0?(cols[li]||''):'';
+    let lastPrayerIso=null;
+    if(lastPrayer){const d=new Date(lastPrayer);if(!isNaN(d))lastPrayerIso=d.toISOString().slice(0,10);}
+    // parse birthdate with flexible format handler
+    let dob=bi>=0?parseDobString(cols[bi],isNaN(ageVal)?null:ageVal):null;
+    let estimated=false;
+    // fall back to age if no birthdate
+    if(!dob&&!isNaN(ageVal)&&ageVal>0&&ageVal<120){
+      dob=(new Date().getFullYear()-ageVal)+'-07-01';
+      estimated=true;
+    }
+    const existing=state.members.find(m=>m.first.toLowerCase()===first.toLowerCase()&&m.last.toLowerCase()===last.toLowerCase());
+    rows.push({first,last,phone,email,dob,estimated,notBaptized,age:isNaN(ageVal)?null:ageVal,lastPrayer:lastPrayerIso,isNew:!existing,existingId:existing?.id,returning:!!existing&&existing.status==='moved',baptized:!!existing&&!!existing.notBaptized&&!notBaptized});
+  });
+  return rows.filter(r=>r.first&&r.last);
+}
+
+// Last 10 digits, so (801) 555-1234 and 18015551234 compare equal.
+function phoneKey(p){const d=(p||'').replace(/\D/g,'');return d.length>=10?d.slice(-10):'';}
+
+// Roster members with no row in the pasted directory. A phone match against an
+// unmatched pasted row usually means a rename (marriage, nickname), not a move.
+function computeMissingMembers(rows){
+  const pastedIds=new Set(rows.map(r=>r.existingId).filter(Boolean));
+  const newPhones=new Map();
+  rows.filter(r=>r.isNew).forEach(r=>{
+    const k=phoneKey(r.phone);
+    if(k&&!newPhones.has(k))newPhones.set(k,r);
+  });
+  return state.members
+    .filter(m=>!GONE_STATUSES.includes(m.status)&&!pastedIds.has(m.id))
+    .map(m=>({m,renameOf:phoneKey(m.phone)?newPhones.get(phoneKey(m.phone))||null:null}))
+    .sort((a,b)=>a.m.last.localeCompare(b.m.last)||a.m.first.localeCompare(b.m.first));
+}
+
+function renderMissingBlock(){
+  const wrap=document.getElementById('paste-missing-wrap');
+  const listEl=document.getElementById('paste-missing-list');
+  const gate=document.getElementById('paste-full-directory');
+  const comparable=state.members.filter(m=>!GONE_STATUSES.includes(m.status));
+  // Nothing to compare against on a first-time import.
+  if(!comparable.length){wrap.style.display='none';listEl.style.display='none';return;}
+  wrap.style.display='block';
+  if(!gate.checked){listEl.style.display='none';listEl.innerHTML='';return;}
+  listEl.style.display='block';
+
+  // A partial paste would flag most of the ward as moved — refuse to guess.
+  if(parsedPasteRows.length<comparable.length*0.6){
+    listEl.innerHTML='<div style="font-size:12px;color:#A32D2D;">Only '+parsedPasteRows.length+' rows pasted against a '+comparable.length+'-member roster. That looks like a partial paste, so nobody will be flagged as moved out. Paste the full directory to use this.</div>';
+    return;
+  }
+  const missing=computeMissingMembers(parsedPasteRows);
+  if(!missing.length){
+    listEl.innerHTML='<div style="font-size:12px;color:#3B6D11;">Everyone in the roster appears in this directory.</div>';
+    return;
+  }
+  listEl.innerHTML='<div style="font-size:13px;font-weight:500;margin-bottom:6px;">'+missing.length+' in roster but not in this directory</div>'
+    +'<div style="font-size:11px;color:#854F0B;margin-bottom:8px;">Names are matched exactly, so a nickname or a changed last name shows up here too. Uncheck anyone who has not actually moved.</div>'
+    +'<div style="margin-bottom:8px;"><button type="button" onclick="toggleAllMissing(true)" style="font-size:11px;padding:2px 8px;">Check all</button> '
+    +'<button type="button" onclick="toggleAllMissing(false)" style="font-size:11px;padding:2px 8px;">Uncheck all</button></div>'
+    +'<div style="max-height:200px;overflow-y:auto;">'
+    +missing.map(x=>{
+      const age=calcAge(x.m.dob);
+      const meta=[STATUS_LABELS[x.m.status],age!==null?'age '+age:null].filter(Boolean).join(' · ');
+      const hint=x.renameOf
+        ?'<div style="font-size:11px;color:#185FA5;">Same phone as “'+escHtml(x.renameOf.first+' '+x.renameOf.last)+'” in the paste — probably a name change, not a move.</div>'
+        :'';
+      return '<label style="display:flex;gap:8px;align-items:flex-start;padding:3px 0;cursor:pointer;">'
+        +'<input type="checkbox" class="paste-missing-chk" data-mid="'+x.m.id+'"'+(x.renameOf?'':' checked')+' style="width:15px;height:15px;margin-top:2px;flex-shrink:0;cursor:pointer;"/>'
+        +'<span style="font-size:13px;">'+escHtml(x.m.first+' '+x.m.last)
+        +'<span style="font-size:11px;color:#888780;"> · '+escHtml(meta)+'</span>'+hint+'</span></label>';
+    }).join('')
+    +'</div>';
+}
+
+function toggleAllMissing(on){
+  document.querySelectorAll('.paste-missing-chk').forEach(c=>{c.checked=on;});
+}
+
+function previewPaste(){
+  const raw=document.getElementById('paste-import').value;
+  const preview=document.getElementById('paste-preview');
+  parsedPasteRows=parsePasteData(raw);
+  if(!parsedPasteRows.length){preview.style.display='none';resetMissingBlock();return;}
+  preview.style.display='block';
+  const newRows=parsedPasteRows.filter(r=>r.isNew);
+  document.getElementById('paste-count').textContent=parsedPasteRows.length;
+  document.getElementById('paste-new-count').textContent=newRows.length;
+  const returning=parsedPasteRows.filter(r=>r.returning).length;
+  document.getElementById('paste-return-note').textContent=returning?' · '+returning+' previously marked moved out':'';
+  const defaultStatus=document.getElementById('paste-default-status').value;
+  const tbl=document.getElementById('paste-table');
+  tbl.innerHTML='<tr style="border-bottom:1px solid #e5e5e3;">'
+    +'<th style="text-align:left;padding:4px 8px;color:#888780;font-weight:500;">Name</th>'
+    +'<th style="text-align:left;padding:4px 8px;color:#888780;font-weight:500;">Phone</th>'
+    +'<th style="text-align:left;padding:4px 8px;color:#888780;font-weight:500;">Birthdate</th>'
+    +'<th style="text-align:left;padding:4px 8px;color:#888780;font-weight:500;">Last prayer</th>'
+    +'<th style="text-align:left;padding:4px 8px;color:#888780;font-weight:500;">Action</th>'
+    +'</tr>';
+  parsedPasteRows.slice(0,20).forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.style.cssText='border-bottom:1px solid #f5f5f4;'+(r.isNew||r.returning?'':'opacity:0.45;');
+    const isEstimated=r.dob&&r.dob.endsWith('-07-01')&&!r._hadRealDob;
+    const dobDisplay=r.dob?(fmtDate(r.dob)+(isEstimated?' (est.)':'')):('—');
+    const dobStyle=isEstimated?'color:#854F0B;':'';
+    tr.innerHTML='<td style="padding:4px 8px;">'+escHtml(r.first+' '+r.last)+(r.isNew?'':' <span style="font-size:10px;color:#888780;">(exists)</span>')+'</td>'
+      +'<td style="padding:4px 8px;">'+escHtml(fmtPhone(r.phone)||'—')+'</td>'
+      +'<td style="padding:4px 8px;'+dobStyle+'">'+dobDisplay+'</td>'
+      +'<td style="padding:4px 8px;">'+(r.lastPrayer?fmtDate(r.lastPrayer):'—')+'</td>'
+      +'<td style="padding:4px 8px;">'+(r.isNew?'<span style="color:#3B6D11;font-weight:500;">add</span>':(r.returning?'<span style="color:#854F0B;font-weight:500;">reactivate</span>':'<span style="color:#185FA5;font-weight:500;">update</span>'))+'</td>';
+    tbl.appendChild(tr);
+  });
+  if(parsedPasteRows.length>20){
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td colspan="5" style="padding:4px 8px;color:#888780;font-size:11px;">…and '+(parsedPasteRows.length-20)+' more</td>';
+    tbl.appendChild(tr);
+  }
+  renderMissingBlock();
+  document.getElementById('paste-feedback').textContent='';
+}
+
+function confirmPasteImport(){
+  const defaultStatus=document.getElementById('paste-default-status').value;
+  const newRows=parsedPasteRows.filter(r=>r.isNew);
+  const updateRows=parsedPasteRows.filter(r=>!r.isNew);
+  if(!newRows.length&&!updateRows.length){document.getElementById('paste-feedback').textContent='Nothing to import.';return;}
+  // add new members
+  newRows.forEach(r=>{
+    state.members.push({
+      id:uid(),first:r.first,last:r.last,phone:r.phone||'',email:r.email||'',dob:r.dob||null,
+      status:defaultStatus,statusDate:defaultStatus!=='active'?today():null,
+      notes:'',lastPrayerRef:r.lastPrayer||null,notBaptized:!!r.notBaptized
+    });
+  });
+  // update existing members: fill in blank fields, always refresh phone/email/dob
+  let updated=0,reactivated=0,baptized=0;
+  updateRows.forEach(r=>{
+    const m=state.members.find(m=>m.id===r.existingId);
+    if(!m)return;
+    let changed=false;
+    // the marker disappearing from the directory means they were baptized
+    if(m.notBaptized&&!r.notBaptized)baptized++;
+    if(!!m.notBaptized!==!!r.notBaptized){m.notBaptized=!!r.notBaptized;changed=true;}
+    // back in the directory after being flagged as moved out
+    if(m.status==='moved'){m.status='active';m.statusDate=null;m.movedDate=null;reactivated++;}
+    if(r.phone&&r.phone!==m.phone){m.phone=r.phone;changed=true;}
+    if(r.email&&r.email!==m.email){m.email=r.email;changed=true;}
+    if(r.dob&&!r.estimated&&r.dob!==m.dob){m.dob=r.dob;changed=true;}
+    if(r.dob&&r.estimated&&!m.dob){m.dob=r.dob;changed=true;}
+    if(r.lastPrayer&&!m.lastPrayerRef){m.lastPrayerRef=r.lastPrayer;changed=true;}
+    if(!m.email)m.email='';
+    if(changed)updated++;
+  });
+  // mark the reviewed absentees as moved out (history is kept, they just leave the pools)
+  let movedOut=0;
+  document.querySelectorAll('.paste-missing-chk:checked').forEach(chk=>{
+    const m=state.members.find(m=>m.id===chk.dataset.mid);
+    if(!m||m.status==='moved')return;
+    m.status='moved';m.statusDate=null;m.movedDate=today();movedOut++;
+  });
+  saveState();
+  const estimated=newRows.filter(r=>r.estimated).length;
+  let msg='';
+  if(newRows.length)msg+=newRows.length+' member(s) added. ';
+  if(updated)msg+=updated+' existing member(s) updated. ';
+  if(reactivated)msg+=reactivated+' reactivated (back in the directory). ';
+  if(baptized)msg+=baptized+' newly baptized — now in the suggestion pool. ';
+  if(movedOut)msg+=movedOut+' marked moved out. ';
+  if(estimated)msg+=estimated+' birthdate(s) estimated from age — verify in roster.';
+  if(!msg)msg='No changes made.';
+  document.getElementById('paste-feedback').textContent=msg.trim();
+  document.getElementById('paste-import').value='';
+  parsedPasteRows=[];
+  resetMissingBlock();
+  setTimeout(()=>{
+    document.getElementById('paste-preview').style.display='none';
+    renderRoster();
+    renderSuggestions();
+  },1800);
+}
+
+function resetMissingBlock(){
+  document.getElementById('paste-full-directory').checked=false;
+  const listEl=document.getElementById('paste-missing-list');
+  listEl.innerHTML='';listEl.style.display='none';
+  document.getElementById('paste-missing-wrap').style.display='none';
+}
+
+function cancelPaste(){
+  document.getElementById('paste-import').value='';
+  document.getElementById('paste-preview').style.display='none';
+  parsedPasteRows=[];
+  resetMissingBlock();
+}
+
+let parsedCallingsRows=[];
+function parseCallingsData(raw){
+  const lines=raw.split('\n').map(l=>l.trimEnd()).filter(l=>l.trim());
+  const rows=[];
+  lines.forEach(line=>{
+    const cols=line.split('\t').map(c=>c.trim());
+    if(cols.length<2)return;
+    const name=cols[0]||'';
+    let first='',last='';
+    if(name.includes(',')){
+      const p=name.split(',');last=p[0].trim();first=p.slice(1).join(',').trim();
+    }else{
+      const p=name.split(/\s+/);if(p.length<2)return;
+      last=p[p.length-1];first=p.slice(0,-1).join(' ');
+    }
+    const calling=cols[cols.length-1];
+    if(!first||!last||!calling)return;
+    rows.push({first,last,calling});
+  });
+  return rows;
+}
+
+function previewCallings(){
+  const raw=document.getElementById('callings-import').value;
+  const preview=document.getElementById('callings-preview');
+  parsedCallingsRows=parseCallingsData(raw);
+  if(!parsedCallingsRows.length){preview.style.display='none';return;}
+  preview.style.display='block';
+  const peopleMap=new Map();
+  parsedCallingsRows.forEach(r=>{
+    const k=(r.first+'|'+r.last).toLowerCase();
+    if(!peopleMap.has(k))peopleMap.set(k,{first:r.first,last:r.last});
+  });
+  const people=[...peopleMap.values()];
+  const findMember=p=>state.members.find(m=>m.first.toLowerCase()===p.first.toLowerCase()&&m.last.toLowerCase()===p.last.toLowerCase());
+  const matched=people.filter(findMember);
+  const unmatched=people.filter(p=>!findMember(p));
+  document.getElementById('callings-rows').textContent=parsedCallingsRows.length;
+  document.getElementById('callings-people').textContent=people.length;
+  document.getElementById('callings-matched').textContent=matched.length;
+  const unEl=document.getElementById('callings-unmatched-list');
+  if(unmatched.length){
+    unEl.innerHTML='<div style="font-weight:500;color:#854F0B;margin-bottom:4px;">'+unmatched.length+' not in roster (will be skipped):</div>'
+      +unmatched.map(p=>'<div>· '+escHtml(p.first+' '+p.last)+'</div>').join('');
+  }else{unEl.innerHTML='<div style="color:#3B6D11;">All people matched.</div>';}
+  document.getElementById('callings-feedback').textContent='';
+}
+
+function confirmCallingsImport(){
+  if(!parsedCallingsRows.length){document.getElementById('callings-feedback').textContent='Nothing to import.';return;}
+  const peopleSet=new Set();
+  parsedCallingsRows.forEach(r=>peopleSet.add((r.first+'|'+r.last).toLowerCase()));
+  let marked=0;
+  state.members.forEach(m=>{
+    const k=(m.first+'|'+m.last).toLowerCase();
+    m.hasCalling=peopleSet.has(k);
+    if(m.hasCalling)marked++;
+  });
+  saveState();
+  document.getElementById('callings-feedback').textContent=marked+' member'+(marked!==1?'s':'')+' flagged as having a calling.';
+  document.getElementById('callings-import').value='';
+  parsedCallingsRows=[];
+  setTimeout(()=>{
+    document.getElementById('callings-preview').style.display='none';
+    renderSuggestions();
+  },1800);
+}
+
+function cancelCallings(){
+  document.getElementById('callings-import').value='';
+  document.getElementById('callings-preview').style.display='none';
+  parsedCallingsRows=[];
+}
+
+/* ===== Youth Protection Training ===== */
+
+function todayLocal(){const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);}
+function escAttr(s){return escHtml(s).replace(/"/g,'&quot;');}
+
+function parseYptDate(s){
+  if(!s)return null;
+  const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const m=String(s).trim().match(/^(\d{1,2})[-\/\s]([a-zA-Z]{3,9})[-\/\s](\d{2,4})$/);
+  if(!m)return null;
+  const day=parseInt(m[1],10);
+  const mon=months[m[2].toLowerCase().slice(0,3)];
+  let year=parseInt(m[3],10);
+  if(mon===undefined)return null;
+  if(year<100)year=2000+year;
+  const d=new Date(year,mon,day,12);
+  return isNaN(d)?null:d.toISOString().slice(0,10);
+}
+
+function resolveYptBody(settings){return (settings.template||'').split('{link}').join(settings.link||'');}
+function mdToHtml(text){
+  let h=escHtml(text);
+  h=h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,'<a href="$2">$1</a>'); // [label](url)
+  h=h.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');           // **bold**
+  h=h.replace(/\n/g,'<br>');
+  return h;
+}
+function categorizeYpt(r, today){
+  if(r.yptExpires==null||r.yptExpires==='')return 'norecord';
+  const t=new Date(today+'T12:00:00');
+  const exp=new Date(r.yptExpires+'T12:00:00');
+  if(exp<=t)return 'pastdue';
+  const lead=new Date(t);lead.setDate(lead.getDate()+YPT_LEAD_DAYS);
+  return exp<=lead?'soon':'current';
+}
+// Needs training = expired, expiring within the lead window, or no record at all.
+function yptNeedsTraining(r, today){return categorizeYpt(r,today)!=='current';}
+function buildYptBatch(rows, settings){
+  const withEmail=rows.filter(r=>r.email&&r.email.trim());
+  // De-dup addresses (the source report can list the same person more than once).
+  const seen=new Set();
+  const uniqueEmails=[];
+  withEmail.forEach(r=>{
+    const e=r.email.trim();
+    const key=e.toLowerCase();
+    if(seen.has(key))return;
+    seen.add(key);
+    uniqueEmails.push(e);
+  });
+  return {
+    emails: uniqueEmails.join(', '),
+    subject: settings.subject||'',
+    bodyHtml: mdToHtml(resolveYptBody(settings)),
+    count: uniqueEmails.length
+  };
+}
+
+// Transient: parsed from the pasted list, never saved. Only state.ypt.lastSent persists.
+let yptRows=[];
+function parseYptReport(raw){
+  const lines=raw.split('\n').map(l=>l.replace(/\r$/,'')).filter(l=>l.trim());
+  const rows=[];
+  lines.forEach(line=>{
+    const cols=line.split('\t').map(c=>c.trim());
+    const rawName=cols[0]||'';
+    if(!rawName||rawName.toLowerCase()==='name')return;
+    let first='',last='';
+    if(rawName.includes(',')){const p=rawName.split(',');last=p[0].trim();first=p.slice(1).join(',').trim();}
+    else{const p=rawName.split(/\s+/);if(p.length<2)return;last=p[p.length-1];first=p.slice(0,-1).join(' ');}
+    if(!first||!last)return;
+    const yptExpires=parseYptDate(cols[4]||'');
+    const member=state.members.find(m=>m.first.toLowerCase()===first.toLowerCase()&&m.last.toLowerCase()===last.toLowerCase());
+    rows.push({first,last,yptExpires,email:member?(member.email||''):''});
+  });
+  return rows;
+}
+
+function renderTraining(){
+  const t=document.getElementById('training');
+  if(t.dataset.built!=='1'){
+    t.dataset.built='1';
+    t.innerHTML=`
+      <div class="slabel" style="margin-top:0;">Reminder batch</div>
+      <div style="font-size:12px;color:#888780;margin-bottom:6px;">Sort the training report by expiration, copy the rows you want (a header row is fine), and paste below. Anyone already current is left out automatically.</div>
+      <textarea id="ypt-paste" placeholder="Paste report rows or names here..." style="width:100%;min-height:80px;font-size:12px;font-family:monospace;" oninput="onYptPaste()"></textarea>
+      <div id="ypt-lastsent" style="margin:8px 0;"></div>
+      <div id="ypt-batch-out"></div>
+      <details open style="margin-top:14px;border-top:1px solid #e5e5e3;padding-top:10px;">
+        <summary style="font-size:12px;color:#888780;cursor:pointer;">Message settings</summary>
+        <div style="margin-top:8px;">
+          <label style="font-size:11px;color:#888780;">Subject</label>
+          <input id="ypt-subject" style="width:100%;margin:4px 0 10px;" value="${escAttr(state.ypt.subject)}"/>
+          <label style="font-size:11px;color:#888780;">Link</label>
+          <input id="ypt-link" style="width:100%;margin:4px 0 10px;" value="${escAttr(state.ypt.link)}"/>
+          <label style="font-size:11px;color:#888780;">Message - **bold**, emojis OK, [link text]({link}) for a clickable link</label>
+          <textarea id="ypt-template" style="width:100%;min-height:320px;margin:4px 0 6px;">${escHtml(state.ypt.template)}</textarea>
+          <button style="font-size:12px;" onclick="resetYptMessage()">Reset to default message</button>
+        </div>
+      </details>`;
+    document.getElementById('ypt-subject').addEventListener('change',e=>{state.ypt.subject=e.target.value;saveState();buildYptBatchUI();});
+    document.getElementById('ypt-link').addEventListener('change',e=>{state.ypt.link=e.target.value;saveState();buildYptBatchUI();});
+    document.getElementById('ypt-template').addEventListener('change',e=>{state.ypt.template=e.target.value;saveState();buildYptBatchUI();});
+  }
+  renderYptLastSent();
+  buildYptBatchUI();
+}
+
+function onYptPaste(){
+  yptRows=parseYptReport(document.getElementById('ypt-paste').value);
+  buildYptBatchUI();
+}
+
+function renderYptLastSent(){
+  const el=document.getElementById('ypt-lastsent');if(!el)return;
+  el.innerHTML='<span style="font-size:12px;color:#888780;">Last batch sent: <strong>'+(state.ypt.lastSent?fmtDate(state.ypt.lastSent):'never')+'</strong></span>';
+}
+
+function yptNoEmailNote(rows){
+  const miss=rows.filter(r=>!(r.email&&r.email.trim()));
+  if(!miss.length)return '';
+  return '<div style="font-size:11px;color:#854F0B;margin-top:8px;">No email on file (not included): '+miss.map(r=>escHtml(r.first+' '+r.last)).join(', ')+'</div>';
+}
+
+function buildYptBatchUI(){
+  const out=document.getElementById('ypt-batch-out');if(!out)return;
+  if(!yptRows.length){out.innerHTML='<div style="font-size:12px;color:#b4b2a9;margin:6px 0;">Paste names above to build the email batch.</div>';return;}
+  const today=todayLocal();
+  const due=yptRows.filter(r=>yptNeedsTraining(r,today));
+  const skipped=yptRows.length-due.length;
+  const skipNote=skipped?'<div style="font-size:11px;color:#888780;margin-top:8px;">'+skipped+' pasted '+(skipped===1?'person is':'people are')+' current and not included.</div>':'';
+  const b=buildYptBatch(due,state.ypt);
+  if(!b.emails){out.innerHTML='<div class="empty-state">'+(due.length?'No one needing training has an email on file.':'Nobody pasted needs training.')+'</div>'+yptNoEmailNote(due)+skipNote;return;}
+  out.innerHTML=
+    '<div style="font-size:12px;color:#888780;margin-bottom:6px;">'+b.count+' recipient'+(b.count!==1?'s':'')+'</div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:11px;color:#888780;margin-bottom:4px;">Recipients (paste into To or Bcc)</div>'
+      +'<textarea readonly id="ypt-rec-out" style="width:100%;min-height:60px;font-size:12px;">'+escHtml(b.emails)+'</textarea>'
+      +'<button style="margin-top:4px;font-size:12px;" onclick="copyYptBlock(\'ypt-rec-out\',this)">Copy recipients</button></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:11px;color:#888780;margin-bottom:4px;">Subject</div>'
+      +'<textarea readonly id="ypt-subj-out" style="width:100%;min-height:34px;font-size:12px;">'+escHtml(b.subject)+'</textarea>'
+      +'<button style="margin-top:4px;font-size:12px;" onclick="copyYptBlock(\'ypt-subj-out\',this)">Copy subject</button></div>'
+    +'<div><div style="font-size:11px;color:#888780;margin-bottom:4px;">Message (formatted preview - paste into Outlook)</div>'
+      +'<div id="ypt-body-preview" style="border:1px solid #d3d1c7;border-radius:8px;padding:10px;font-size:13px;background:#fff;line-height:1.5;">'+b.bodyHtml+'</div>'
+      +'<button style="margin-top:6px;font-size:12px;" onclick="copyYptBody(this)">Copy formatted message</button></div>'
+    +'<div style="margin-top:12px;"><button onclick="markYptBatchSent(this)">Mark batch sent today</button></div>'
+    +yptNoEmailNote(due)+skipNote;
+}
+
+function copyYptBlock(id,btn){
+  const ta=document.getElementById(id);
+  const done=()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1200);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value).then(done).catch(()=>{ta.select();document.execCommand('copy');done();});
+  }else{ta.select();document.execCommand('copy');done();}
+}
+
+function copyYptBody(btn){
+  const el=document.getElementById('ypt-body-preview');
+  const sel=window.getSelection();
+  const range=document.createRange();
+  range.selectNodeContents(el);
+  sel.removeAllRanges();sel.addRange(range);
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+  sel.removeAllRanges();
+  const o=btn.textContent;btn.textContent=ok?'Copied (formatted)':'Select it and press Ctrl+C';
+  setTimeout(()=>btn.textContent=o,1600);
+}
+
+function markYptBatchSent(btn){
+  state.ypt.lastSent=todayLocal();
+  saveState();
+  renderYptLastSent();
+  if(btn){const o=btn.textContent;btn.textContent='Marked sent';setTimeout(()=>btn.textContent=o,1500);}
+}
+
+function resetYptMessage(){
+  if(!confirm('Reset the subject, link, and message to the built-in default? This replaces your current wording.'))return;
+  state.ypt.subject=YPT_DEFAULT_SUBJECT;
+  state.ypt.link=YPT_DEFAULT_LINK;
+  state.ypt.template=YPT_DEFAULT_TEMPLATE;
+  saveState();
+  document.getElementById('ypt-subject').value=state.ypt.subject;
+  document.getElementById('ypt-link').value=state.ypt.link;
+  document.getElementById('ypt-template').value=state.ypt.template;
+  buildYptBatchUI();
+}
+
+document.getElementById('week-display').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+const CHIPS=[
+  {id:'all',label:'All',group:'status'},
+  {id:'active',label:'Active',group:'status'},
+  {id:'lessactive',label:'Less active',group:'status'},
+  {id:'inactive',label:'Inactive',group:'status'},
+  {id:'decline',label:'Prefer not to',group:'status'},
+  {id:'mission',label:'Mission',group:'status'},
+  {id:'away',label:'Away',group:'status'},
+  {id:'moved',label:'Moved out',group:'status'},
+  {id:'deceased',label:'Deceased',group:'status'},
+  {id:'youth',label:'Youth',group:'age'},
+  {id:'adult',label:'Adults',group:'age'},
+  {id:'never',label:'Never asked',group:'special'},
+  {id:'notbaptized',label:'Not baptized',group:'special'},
+  {id:'calling',label:'Has calling',group:'calling'},
+];
+window._rosterFilters={status:'all',age:'all',special:'',calling:false};
+function renderChips(){
+  const bar=document.getElementById('roster-chips');
+  if(!bar)return;
+  bar.innerHTML='';
+  const f=window._rosterFilters;
+  CHIPS.forEach(c=>{
+    const active=(c.group==='status'&&f.status===c.id)||(c.group==='age'&&f.age===c.id)||(c.group==='special'&&f.special===c.id)||(c.group==='calling'&&!!f.calling);
+    const btn=document.createElement('button');
+    btn.textContent=c.label;
+    btn.style.cssText='font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid '+(active?'#1a1a18':'#d3d1c7')+';background:'+(active?'#1a1a18':'#fff')+';color:'+(active?'#fff':'#888780')+';cursor:pointer;transition:none;';
+    btn.addEventListener('click',()=>{
+      if(c.group==='status'){f.status=(f.status===c.id&&c.id!=='all')?'all':c.id;}
+      else if(c.group==='age'){f.age=f.age===c.id?'all':c.id;}
+      else if(c.group==='calling'){f.calling=!f.calling;}
+      else{f.special=f.special===c.id?'':c.id;}
+      renderChips();renderRoster();
+    });
+    bar.appendChild(btn);
+  });
+  // separator between groups
+  const groups=[...new Set(CHIPS.map(c=>c.group))];
+  if(groups.length>1){
+    let gi=0;
+    Array.from(bar.children).forEach((btn,i)=>{
+      if(i>0&&CHIPS[i].group!==CHIPS[i-1].group){
+        const sep=document.createElement('div');
+        sep.style.cssText='width:1px;background:#e5e5e3;margin:2px 2px;';
+        bar.insertBefore(sep,btn);
+      }
+    });
+  }
+}
+window._renderChips=renderChips;
+
+loadState();
+setupLogCombo('opening');
+setupLogCombo('closing');
+renderSuggestions();
+populateLogSelects();
+</script>
+</body>
+</html>
