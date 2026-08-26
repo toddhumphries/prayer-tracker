@@ -39,6 +39,15 @@ through Export/Import. **Reset to defaults** puts them back.
 The draw is seeded, so switching tabs shows the same people — **↻ Reshuffle**
 is what re-rolls it.
 
+## Training reminders
+
+The Training tab builds the youth-protection renewal emails. Paste the report
+rows, and it works out who is actually due and drafts the batch.
+
+The subject, link, and message body are editable under **Message settings**, and
+the shipped template signs off with `[Your name]` / `[Your phone number]` —
+replace those once and the wording is saved in `localStorage` from then on.
+
 ## Who counts as what
 
 - **Youth** is age 8–20, **adults** are 21+ or anyone with no birthdate on file.
