@@ -1,0 +1,14 @@
+{
+  "name": "prayer-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Ward prayer tracker — SQLite-backed, self-hosted.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node --no-warnings server.mjs",
+    "import": "node --no-warnings import.mjs",
+    "backup": "node --no-warnings backup.mjs",
+    "test": "node --no-warnings run-tests.mjs"
+  }
+}

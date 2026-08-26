@@ -58,6 +58,6 @@ replace those once and the wording is saved in `localStorage` from then on.
 
 ## The server version
 
-`../prayer-tracker_server/` is the same app rebuilt against SQLite over HTTP, so
-it can be reached from a phone. It is not in use yet. Changes to the suggestion
+`server/` is the same app rebuilt against SQLite over HTTP, so it can be reached
+from a phone. It is not in use yet. Changes to the suggestion
 logic need to land in both files — they share the code but not the storage layer.
