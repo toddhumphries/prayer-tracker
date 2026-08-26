@@ -46,6 +46,17 @@ button:hover{background:#f5f5f4;}
 .del-btn{font-size:11px;color:#b4b2a9;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;}
 .del-btn:hover{color:#A32D2D;background:#FCEBEB;}
 .empty-state{text-align:center;padding:2rem;color:#888780;font-size:14px;}
+.tier{display:flex;align-items:baseline;gap:8px;margin:14px 0 6px;}
+.tier:first-child{margin-top:4px;}
+.tier-name{font-size:12px;font-weight:600;color:#1a1a18;}
+.tier-count{font-size:11px;color:#b4b2a9;}
+.tier-more{font-size:11px;color:#185FA5;background:none;border:none;cursor:pointer;padding:0;margin-left:auto;}
+.tier-more:hover{background:none;text-decoration:underline;}
+.tier-empty{font-size:12px;color:#b4b2a9;font-style:italic;margin:0 0 8px 2px;}
+.cfg-grid{display:grid;grid-template-columns:1fr 62px 62px;gap:6px 10px;align-items:center;font-size:12px;}
+.cfg-head{font-size:11px;color:#888780;text-transform:uppercase;letter-spacing:.05em;text-align:center;}
+.cfg-grid input[type=number]{width:100%;font-size:12px;padding:4px 6px;text-align:right;}
+.cfg-grid input[type=checkbox]{justify-self:center;}
 .assignment-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e5e5e3;}
 .assignment-row:last-child{border-bottom:none;}
 .phone-link{font-size:13px;color:#185FA5;text-decoration:none;}
@@ -97,6 +108,11 @@ textarea{width:100%;resize:vertical;min-height:56px;line-height:1.5;}
       <div class="metric"><div class="metric-val" id="m-other">0</div><div class="metric-label">inactive/decline</div></div>
     </div>
     <div id="youth-banner"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;">
+      <button id="sug-cfg-toggle" onclick="toggleSuggestConfig()" style="font-size:12px;padding:4px 10px;">Adjust suggestions</button>
+      <button onclick="reshuffleSuggestions()" title="Draw a different set" style="font-size:12px;padding:4px 10px;">↻ Reshuffle</button>
+    </div>
+    <div class="card" id="sug-cfg-body" style="display:none;padding:12px 14px;margin-bottom:12px;"></div>
     <div class="slabel">Youth (ages 8–20)</div>
     <div id="youth-suggestions"></div>
     <div class="slabel">Adults</div>
@@ -323,6 +339,15 @@ const NOT_BAPTIZED_TEST=/(not\s*bapti[sz]ed|unbapti[sz]ed)/i;
 function stripNameMarkers(s){return String(s||'').replace(NOT_BAPTIZED_STRIP,' ').replace(/\s+/g,' ').trim();}
 function hasNotBaptizedMarker(s){return NOT_BAPTIZED_TEST.test(String(s||''));}
 
+/* Suggestion tuning. Stored in `state`, so it rides along with everything else
+   in localStorage and travels through Export/Import like any other setting.
+   The Suggest tab's "Adjust suggestions" panel writes straight into it. */
+const SUGGEST_DEFAULTS={
+  youth:{callingNever:2,never:2,oldest:3,minWeeks:60,poolSize:12,randomize:true},
+  adult:{callingNever:3,never:3,oldest:4,minWeeks:52,poolSize:24,randomize:true}
+};
+const SUGGEST_GROUPS=['youth','adult'];
+
 function loadState(){
   try{const r=localStorage.getItem(LS_KEY);if(r)state=JSON.parse(r);}catch(e){}
   if(!state.members)state.members=[];
@@ -332,6 +357,10 @@ function loadState(){
   if(state.ypt.link==null)state.ypt.link=YPT_DEFAULT_LINK;
   if(state.ypt.template==null)state.ypt.template=YPT_DEFAULT_TEMPLATE;
   if(state.ypt.lastSent===undefined)state.ypt.lastSent=null;
+  if(!state.suggest)state.suggest={};
+  SUGGEST_GROUPS.forEach(g=>{
+    state.suggest[g]=Object.assign({},SUGGEST_DEFAULTS[g],state.suggest[g]||{});
+  });
   // Clean names imported before the marker was handled, so a later baptism
   // matches the existing record instead of creating a second one.
   let cleaned=false;
@@ -374,7 +403,7 @@ function importData(event){
       const d=JSON.parse(e.target.result);
       if(d.members&&d.log){
         if(confirm('This will replace all current data. Continue?')){
-          state=d;saveState();
+          state=d;saveState();loadState();
           renderSuggestions();populateLogSelects();renderRoster();
           alert('Data imported successfully.');
         }
@@ -489,6 +518,81 @@ function makeSuggestCard(m,isTop,topLabel){
 
 function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+/* ---------------------------------------------------------------------------
+   Suggestions.
+
+   Three tiers, always in this order, so the list reads the same way every week:
+
+     1. holds a calling and has never been asked
+     2. has never been asked
+     3. longest since they were asked
+
+   Counts, the cooldown, and how wide the random draw is are all per-group and
+   live in state.suggest (see SUGGEST_DEFAULTS). The draw is seeded, so opening
+   the tab twice shows the same people - "Reshuffle" is what re-rolls it.
+--------------------------------------------------------------------------- */
+
+const SUGGEST_FIELDS=[
+  {k:'callingNever',label:'Calling \u00b7 never asked',min:0,max:25,hint:'How many calling-holders who have never prayed to list.'},
+  {k:'never',label:'Never asked',min:0,max:25,hint:'How many never-asked members without a calling to list.'},
+  {k:'oldest',label:'Longest since asked',min:0,max:25,hint:'How many to list from the people asked longest ago.'},
+  {k:'minWeeks',label:'Skip if asked within (weeks)',min:0,max:520,hint:'Anyone asked more recently than this is left out entirely.'},
+  {k:'poolSize',label:'Draw \u201clongest ago\u201d from top',min:1,max:300,hint:'Size of the pool the longest-ago picks are drawn from. Bigger means more variety.'}
+];
+
+// Bumped by Reshuffle; seeds the draw so a plain re-render is stable.
+let sugSeed=Date.now()>>>0;
+// group:tier keys the user has expanded to full length.
+const sugExpanded=new Set();
+
+function sugCfg(g){
+  return Object.assign({},SUGGEST_DEFAULTS[g],(state.suggest&&state.suggest[g])||{});
+}
+function sugHash(str){let h=2166136261>>>0;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
+function sugRng(seed){
+  let x=(seed>>>0)||1;
+  return()=>{x^=x<<13;x>>>=0;x^=x>>>17;x^=x<<5;x>>>=0;return x/4294967296;};
+}
+function sugShuffle(arr,seed){
+  const a=arr.slice(),r=sugRng(seed);
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}
+  return a;
+}
+
+// Splits a group's members into the three tiers, each already in its natural
+// order (never-asked tiers by name, the last tier oldest first).
+function buildTiers(list,cfg){
+  const rows=list.map(m=>{
+    const last=lastAsked(m.id);
+    return Object.assign({},m,{_last:last,_weeks:weeksSince(last)});
+  });
+  const eligible=rows.filter(m=>m._weeks===null||m._weeks>=cfg.minWeeks);
+  const byName=(a,b)=>(a.last+a.first).localeCompare(b.last+b.first);
+  const never=eligible.filter(m=>!m._last);
+  return [
+    {key:'callingNever',name:'Has a calling \u00b7 never asked',
+     all:never.filter(m=>m.hasCalling).sort(byName),take:cfg.callingNever,window:0},
+    {key:'never',name:'Never asked',
+     all:never.filter(m=>!m.hasCalling).sort(byName),take:cfg.never,window:0},
+    {key:'oldest',name:'Longest since asked',
+     all:eligible.filter(m=>m._last).sort((a,b)=>a._last.localeCompare(b._last)),
+     take:cfg.oldest,window:cfg.poolSize}
+  ];
+}
+
+// `window` limits how deep into an ordered tier the random draw reaches - 0
+// means the whole tier is fair game (the never-asked tiers have no ordering
+// worth preserving). With randomize off the tier is taken straight off the top.
+function pickTier(tier,cfg,group){
+  if(!cfg.randomize)return tier.all.slice(0,tier.take);
+  const pool=tier.window?tier.all.slice(0,Math.max(tier.take,tier.window)):tier.all;
+  const picked=sugShuffle(pool,sugSeed^sugHash(group+':'+tier.key)).slice(0,tier.take);
+  // Draw at random, but list them back in the tier order (oldest first) so the
+  // section still reads the way its heading says it does.
+  const rank=new Map(tier.all.map((m,i)=>[m.id,i]));
+  return picked.sort((a,b)=>rank.get(a.id)-rank.get(b.id));
+}
+
 function renderSuggestions(){
   const activeAdults=state.members.filter(m=>m.status==='active'&&!m.notBaptized&&isAdult(m));
   const activeYouth=state.members.filter(m=>m.status==='active'&&!m.notBaptized&&isYouth(m));
@@ -500,49 +604,119 @@ function renderSuggestions(){
   const yc=youthThisMonth();
   const banner=document.getElementById('youth-banner');
   if(yc>=2)banner.innerHTML='<div style="background:#EAF3DE;border:1px solid #C0DD97;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#3B6D11;">Youth goal met this month ('+yc+' so far).</div>';
-  else if(yc===1)banner.innerHTML='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#854F0B;">1 youth prayer this month — goal is 1–2.</div>';
+  else if(yc===1)banner.innerHTML='<div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#854F0B;">1 youth prayer this month \u2014 goal is 1\u20132.</div>';
   else banner.innerHTML='<div style="background:#FCEBEB;border:1px solid #F7C1C1;border-radius:12px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:#A32D2D;">No youth prayers yet this month.</div>';
 
-  // Build suggestion pool: 3 never-asked + 3 random from top-20 oldest, deduplicated
-  function buildPool(list, exclude, neverCount, oldestPool, oldestPick){
-    const pool=list
-      .filter(m=>!exclude.includes(m.id))
-      .map(m=>({...m,_last:lastAsked(m.id)}))
-      .sort((a,b)=>{
-        if(!a._last&&!b._last)return 0;
-        if(!a._last)return -1;
-        if(!b._last)return 1;
-        return a._last.localeCompare(b._last);
-      });
-    const neverPool=pool.filter(m=>!m._last);
-    const callingNever=neverPool.filter(m=>m.hasCalling).sort(()=>Math.random()-0.5);
-    const otherNever=neverPool.filter(m=>!m.hasCalling).sort(()=>Math.random()-0.5);
-    const neverAll=[...callingNever,...otherNever];
-    const never=neverAll.slice(0,neverCount);
-    const neverIds=new Set(never.map(m=>m.id));
-    const shortfall=neverCount-never.length;
-    const topN=pool.filter(m=>m._last&&!neverIds.has(m.id)).slice(0,oldestPool);
-    const picked=[...topN].sort(()=>Math.random()-0.5).slice(0,oldestPick+shortfall);
-    return [...never,...picked];
+  renderSuggestGroup('youth',activeYouth,'youth-suggestions');
+  renderSuggestGroup('adult',activeAdults,'adult-suggestions');
+  renderSuggestConfig();
+}
+
+function renderSuggestGroup(group,list,containerId){
+  const el=document.getElementById(containerId);
+  if(!el)return;
+  el.innerHTML='';
+  const cfg=sugCfg(group);
+  const tiers=buildTiers(list,cfg);
+
+  tiers.forEach(tier=>{
+    const expandKey=group+':'+tier.key;
+    const expanded=sugExpanded.has(expandKey);
+    if(!tier.take&&!expanded)return;                  // tier switched off
+    const picks=expanded?tier.all:pickTier(tier,cfg,group);
+
+    const head=document.createElement('div');
+    head.className='tier';
+    let more='';
+    if(tier.all.length>picks.length||expanded)
+      more='<button class="tier-more" onclick="toggleTier(&quot;'+expandKey+'&quot;)">'+(expanded?'show fewer':'show all '+tier.all.length)+'</button>';
+    head.innerHTML='<span class="tier-name">'+tier.name+'</span>'
+      +'<span class="tier-count">'+picks.length+' of '+tier.all.length+'</span>'+more;
+    el.appendChild(head);
+
+    if(!picks.length){
+      const none=document.createElement('div');
+      none.className='tier-empty';
+      none.textContent='Nobody left in this group.';
+      el.appendChild(none);
+      return;
+    }
+    picks.forEach(m=>el.appendChild(makeSuggestCard(m,false,'')));
+  });
+
+  if(!el.children.length)el.innerHTML='<div class="empty-state">None available.</div>';
+}
+
+function toggleTier(key){
+  if(sugExpanded.has(key))sugExpanded.delete(key);else sugExpanded.add(key);
+  renderSuggestions();
+}
+
+function reshuffleSuggestions(){
+  sugSeed=(Math.imul(sugSeed,1664525)+1013904223)>>>0;
+  sugExpanded.clear();
+  renderSuggestions();
+}
+
+function toggleSuggestConfig(){
+  const body=document.getElementById('sug-cfg-body');
+  const open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  document.getElementById('sug-cfg-toggle').textContent=open?'Hide settings':'Adjust suggestions';
+  if(open)renderSuggestConfig(true);
+}
+
+function renderSuggestConfig(force){
+  const body=document.getElementById('sug-cfg-body');
+  if(!body||body.style.display==='none')return;
+  // Rebuilding while a number input has focus would eat the keystroke.
+  if(!force&&body.contains(document.activeElement))return;
+  const rows=SUGGEST_FIELDS.map(f=>
+    '<div title="'+escAttr(f.hint)+'">'+escHtml(f.label)+'</div>'
+    +SUGGEST_GROUPS.map(g=>'<input type="number" min="'+f.min+'" max="'+f.max+'" step="1"'
+      +' value="'+sugCfg(g)[f.k]+'" data-g="'+g+'" data-k="'+f.k+'"'
+      +' onchange="setSuggestCfg(this)"/>').join('')
+  ).join('');
+  const randRow='<div title="Off means always the same top names, in order.">Randomize the picks</div>'
+    +SUGGEST_GROUPS.map(g=>'<input type="checkbox" data-g="'+g+'" data-k="randomize"'
+      +(sugCfg(g).randomize?' checked':'')+' onchange="setSuggestCfg(this)"/>').join('');
+  body.innerHTML=
+    '<div class="cfg-grid">'
+    +'<div></div><div class="cfg-head">Youth</div><div class="cfg-head">Adults</div>'
+    +rows+randRow
+    +'</div>'
+    +'<div style="margin-top:10px;border-top:1px solid #e5e5e3;padding-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+    +'<button onclick="resetSuggestCfg()" style="font-size:12px;padding:4px 10px;">Reset to defaults</button>'
+    +'<span style="font-size:11px;color:#888780;">Saved to the server, so the phone sees the same settings.</span>'
+    +'</div>';
+}
+
+function setSuggestCfg(input){
+  const g=input.dataset.g,k=input.dataset.k;
+  if(!state.suggest)state.suggest={};
+  if(!state.suggest[g])state.suggest[g]=Object.assign({},SUGGEST_DEFAULTS[g]);
+  if(input.type==='checkbox'){
+    state.suggest[g][k]=input.checked;
+  }else{
+    const f=SUGGEST_FIELDS.find(x=>x.k===k);
+    let v=parseInt(input.value,10);
+    if(!isFinite(v))v=SUGGEST_DEFAULTS[g][k];
+    v=Math.max(f.min,Math.min(f.max,v));
+    input.value=v;
+    state.suggest[g][k]=v;
   }
+  sugExpanded.clear();
+  saveState();
+  renderSuggestions();
+}
 
-  function renderBlock(pool, containerId){
-    const el=document.getElementById(containerId);el.innerHTML='';
-    if(!pool.length){el.innerHTML='<div class="empty-state">None available.</div>';return;}
-    pool.forEach(m=>el.appendChild(makeSuggestCard(m,false,'')));
-  }
-
-  // only include adults asked 52+ weeks ago in the oldest pool
-  const adultEligible=activeAdults.filter(m=>{const w=weeksSince(lastAsked(m.id));return w===null||w>=52;});
-  const adultOldestPool=Math.max(5,Math.round(adultEligible.length*0.10));
-  const adultPool=buildPool(adultEligible,[],5,adultOldestPool,5);  // 5 never + 5 from top 10% of 52w+
-  // youth: exclude anyone asked in last 20 weeks (red/blue), then top 10% pool
-  const eligibleYouth=activeYouth.filter(m=>{const w=weeksSince(lastAsked(m.id));return w===null||w>=60;});
-  const youthOldestPool=Math.max(3,Math.round(eligibleYouth.length*0.20));
-  const youthPool=buildPool(eligibleYouth,[],3,youthOldestPool,3);  // 3 never + 3 from top 10%
-
-  renderBlock(youthPool,'youth-suggestions');
-  renderBlock(adultPool,'adult-suggestions');
+function resetSuggestCfg(){
+  state.suggest={};
+  SUGGEST_GROUPS.forEach(g=>{state.suggest[g]=Object.assign({},SUGGEST_DEFAULTS[g]);});
+  sugExpanded.clear();
+  saveState();
+  renderSuggestions();
+  renderSuggestConfig(true);
 }
 
 let _comboMembers=[];
