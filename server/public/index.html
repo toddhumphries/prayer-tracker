@@ -64,6 +64,11 @@ button:hover{background:#f5f5f4;}
 .cfg-grid input[type=checkbox]{justify-self:center;}
 .assignment-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #e5e5e3;}
 .assignment-row:last-child{border-bottom:none;}
+.log-status{font-size:12px;color:#888780;margin:4px 0 4px 100px;min-height:18px;}
+.log-status.editing{color:#854F0B;}
+.opening-tag,.closing-tag{display:inline-block;min-width:52px;text-align:center;}
+.log-missing{font-size:13px;color:#854F0B;font-style:italic;}
+.log-warn{color:#854F0B !important;}
 .phone-link{font-size:13px;color:#185FA5;text-decoration:none;}
 .phone-link:hover{text-decoration:underline;}
 .member-detail{border-top:1px solid #e5e5e3;margin-top:10px;padding-top:10px;display:none;}
@@ -128,8 +133,14 @@ textarea{width:100%;resize:vertical;min-height:56px;line-height:1.5;}
 
   <div id="log" class="section">
     <div class="card" style="padding:1rem 1.25rem;margin-bottom:1rem;">
-      <div style="font-size:14px;font-weight:500;margin-bottom:12px;">This week's assignments</div>
-      <div class="assignment-row">
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px;">Record prayers</div>
+      <div style="font-size:12px;color:#888780;margin-bottom:10px;">Pick the date first, then fill in <b>both</b> names. A date that's already recorded loads here so you can correct it &mdash; saving replaces that whole date.</div>
+      <div class="assignment-row" style="border-bottom:none;padding-bottom:0;">
+        <div style="width:90px;font-size:13px;color:#888780;">Date</div>
+        <input type="date" id="log-date" onchange="loadLogDate()" style="flex:1;font-size:13px;"/>
+      </div>
+      <div id="log-status" class="log-status"></div>
+      <div class="assignment-row" style="border-top:1px solid #e5e5e3;">
         <div style="width:90px;font-size:13px;color:#888780;">Opening</div>
         <div class="combo-wrap">
           <input type="text" class="combo-input" id="log-opening-input" placeholder="Search name..." autocomplete="off"/>
@@ -148,12 +159,13 @@ textarea{width:100%;resize:vertical;min-height:56px;line-height:1.5;}
         </div>
       </div>
 
-      <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-        <input type="date" id="log-date" style="flex:1;font-size:13px;"/>
-        <button onclick="saveLog()">Save</button>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end;">
+        <button id="log-save" onclick="saveLog()">Save</button>
       </div>
       <div id="log-feedback" style="font-size:12px;color:#888780;text-align:right;margin-top:4px;min-height:18px;"></div>
     </div>
+    <div id="history-head" class="slabel">Recent weeks</div>
+    <div id="history-list"></div>
   </div>
 
   <div id="followup" class="section">
@@ -1027,19 +1039,54 @@ function resetSuggestCfg(){
 }
 
 let _comboMembers=[];
+function setLogSlot(role,id){
+  const hidden=document.getElementById('log-'+role);
+  const input=document.getElementById('log-'+role+'-input');
+  const clearBtn=document.getElementById('log-'+role+'-clear');
+  const m=id&&state.members.find(x=>x.id===id);
+  if(m){hidden.value=m.id;input.value=m.first+' '+m.last;clearBtn.style.display='inline-block';}
+  else{hidden.value='';input.value='';clearBtn.style.display='none';}
+}
+// Leaves a half-filled form alone (tab switches and sync refreshes land here);
+// only an empty date gets today plus whatever is already recorded for it.
 function populateLogSelects(){
   _comboMembers=state.members.filter(m=>m.status==='active').sort((a,b)=>a.last.localeCompare(b.last));
-  ['opening','closing'].forEach(role=>{
-    const hidden=document.getElementById('log-'+role);
-    const input=document.getElementById('log-'+role+'-input');
-    const clearBtn=document.getElementById('log-'+role+'-clear');
-    if(hidden.value){
-      const m=state.members.find(x=>x.id===hidden.value);
-      if(m){input.value=m.first+' '+m.last;clearBtn.style.display='inline-block';}
-      else{hidden.value='';input.value='';clearBtn.style.display='none';}
-    }
-  });
-  document.getElementById('log-date').value=today();
+  ['opening','closing'].forEach(role=>setLogSlot(role,document.getElementById('log-'+role).value));
+  const d=document.getElementById('log-date');
+  if(!d.value){d.value=today();loadLogDate();}else logFormChanged();
+  renderHistory();
+}
+// A date that already has an entry loads both names, so saving edits it
+// instead of silently dropping whichever slot was left blank.
+function loadLogDate(){
+  const e=state.log.find(x=>x.date===document.getElementById('log-date').value);
+  setLogSlot('opening',e?e.opening:'');
+  setLogSlot('closing',e?e.closing:'');
+  logFormChanged();
+}
+let _logConfirmOne=false;
+function logFormChanged(){
+  _logConfirmOne=false;
+  const date=document.getElementById('log-date').value;
+  const st=document.getElementById('log-status');
+  const btn=document.getElementById('log-save');
+  const fb=document.getElementById('log-feedback');
+  if(fb.classList.contains('log-warn')){fb.textContent='';fb.classList.remove('log-warn');}
+  if(!date){st.textContent='';st.className='log-status';btn.textContent='Save';return;}
+  if(state.log.some(x=>x.date===date)){
+    st.textContent='Already recorded \u2014 you\'re editing '+fmtDate(date)+'.';
+    st.className='log-status editing';
+    btn.textContent='Update '+fmtDate(date);
+  }else{
+    st.textContent='Nothing recorded for '+fmtDate(date)+' yet.';
+    st.className='log-status';
+    btn.textContent='Save '+fmtDate(date);
+  }
+}
+function editLogDate(date){
+  document.getElementById('log-date').value=date;
+  loadLogDate();
+  document.getElementById('log').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function setupLogCombo(role){
@@ -1077,6 +1124,7 @@ function setupLogCombo(role){
     input.value=m.first+' '+m.last;
     clearBtn.style.display='inline-block';
     dropdown.style.display='none';
+    logFormChanged();
   }
   function updateActive(){
     const opts=dropdown.querySelectorAll('.combo-option');
@@ -1085,7 +1133,7 @@ function setupLogCombo(role){
   }
   input.addEventListener('focus',render);
   input.addEventListener('input',()=>{
-    if(hidden.value){hidden.value='';clearBtn.style.display='none';}
+    if(hidden.value){hidden.value='';clearBtn.style.display='none';logFormChanged();}
     render();
   });
   input.addEventListener('blur',()=>{setTimeout(()=>{dropdown.style.display='none';},150);});
@@ -1102,7 +1150,7 @@ function setupLogCombo(role){
     else if(e.key==='Escape'){dropdown.style.display='none';input.blur();}
   });
   clearBtn.addEventListener('click',()=>{
-    hidden.value='';input.value='';clearBtn.style.display='none';input.focus();
+    hidden.value='';input.value='';clearBtn.style.display='none';logFormChanged();input.focus();
   });
 }
 
@@ -1110,14 +1158,25 @@ function saveLog(){
   const opening=document.getElementById('log-opening').value;
   const closing=document.getElementById('log-closing').value;
   const date=document.getElementById('log-date').value;
-  if(!date||(!opening&&!closing)){document.getElementById('log-feedback').textContent='Select at least one member and a date.';return;}
+  const fb=document.getElementById('log-feedback');
+  if(!date||(!opening&&!closing)){fb.textContent='Select at least one member and a date.';return;}
+  const missing=!opening?'Opening':!closing?'Closing':null;
+  if(missing&&!_logConfirmOne){
+    _logConfirmOne=true;
+    fb.textContent=missing+' is empty. Fill it in, or click again to save just one name.';
+    fb.classList.add('log-warn');
+    document.getElementById('log-save').textContent='Save with one name';
+    return;
+  }
   const idx=state.log.findIndex(e=>e.date===date);
   const entry={date,opening:opening||null,closing:closing||null};
   if(idx>=0)state.log[idx]=entry;else state.log.push(entry);
   state.log.sort((a,b)=>b.date.localeCompare(a.date));
   saveState();
-  document.getElementById('log-feedback').textContent='Saved for '+fmtDate(date);
-  setTimeout(()=>{document.getElementById('log-feedback').textContent='';},3000);
+  logFormChanged();
+  renderHistory();
+  fb.textContent=(idx>=0?'Updated ':'Saved for ')+fmtDate(date);
+  setTimeout(()=>{if(!fb.classList.contains('log-warn'))fb.textContent='';},3000);
 }
 
 function renderFollowUp(){
@@ -1285,19 +1344,28 @@ function renderFollowUp(){
 
 function renderHistory(){
   const el=document.getElementById('history-list');el.innerHTML='';
-  if(!state.log.length){el.innerHTML='<div class="empty-state">No history yet.</div>';return;}
-  [...state.log].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,24).forEach(e=>{
+  const head=document.getElementById('history-head');
+  if(!state.log.length){head.textContent='Recent weeks';el.innerHTML='<div class="empty-state">No history yet.</div>';return;}
+  const recent=[...state.log].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,24);
+  const gaps=recent.filter(e=>!e.opening||!e.closing).length;
+  head.textContent='Recent weeks'+(gaps?' \u00b7 '+gaps+' missing a name':'');
+  const row=(e,role)=>'<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span class="badge '+role+'-tag">'+role+'</span>'
+    +(e[role]?'<span style="font-size:14px;">'+getMemberName(e[role])+'</span>':'<span class="log-missing">not recorded</span>')+'</div>';
+  recent.forEach(e=>{
     const div=document.createElement('div');div.className='card';div.style.cssText='padding:10px 14px;margin-bottom:8px;';
     div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
       +'<div style="font-size:14px;font-weight:500;">'+fmtDate(e.date)+'</div>'
-      +'<button class="del-btn" onclick="deleteLog(\''+e.date+'\')">remove</button></div>'
-      +(e.opening?'<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span class="badge opening-tag">opening</span><span style="font-size:14px;">'+getMemberName(e.opening)+'</span></div>':'')
-      +(e.closing?'<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;"><span class="badge closing-tag">closing</span><span style="font-size:14px;">'+getMemberName(e.closing)+'</span></div>':'')
+      +'<div><button class="del-btn" onclick="editLogDate(\''+e.date+'\')">edit</button>'
+      +'<button class="del-btn" onclick="deleteLog(\''+e.date+'\')">remove</button></div></div>'
+      +row(e,'opening')+row(e,'closing')
       +(e.youth?'<div style="display:flex;gap:8px;align-items:center;"><span class="badge youth-tag">youth</span><span style="font-size:14px;">'+getMemberName(e.youth)+'</span></div>':'');
     el.appendChild(div);
   });
 }
-function deleteLog(date){state.log=state.log.filter(e=>e.date!==date);saveState();renderHistory();}
+function deleteLog(date){
+  if(!confirm('Remove everything recorded for '+fmtDate(date)+'?'))return;
+  state.log=state.log.filter(e=>e.date!==date);saveState();renderHistory();logFormChanged();
+}
 
 function logCount(id){return state.log.filter(e=>e.opening===id||e.closing===id).length;}
 
