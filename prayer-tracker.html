@@ -223,9 +223,14 @@ textarea{width:100%;resize:vertical;min-height:56px;line-height:1.5;}
         <div style="overflow-x:auto;margin-bottom:10px;max-height:220px;overflow-y:auto;">
           <table id="paste-table" style="width:100%;font-size:12px;border-collapse:collapse;"></table>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
-          <span style="font-size:13px;color:#888780;">Default status:</span>
-          <select id="paste-default-status" style="font-size:13px;" onchange="previewPaste()">
+        <div id="paste-new-wrap" style="display:none;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px;">New members (<span id="paste-new-count2">0</span>)</div>
+        <div style="overflow-x:auto;margin-bottom:8px;max-height:260px;overflow-y:auto;">
+          <table id="paste-new-table" style="width:100%;font-size:12px;border-collapse:collapse;"></table>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:13px;color:#888780;">Set all new to:</span>
+          <select id="paste-default-status" style="font-size:13px;" onchange="setAllNewStatus(this.value)">
             <option value="active">Active</option>
             <option value="lessactive">Less active</option>
             <option value="inactive">Inactive</option>
@@ -233,7 +238,8 @@ textarea{width:100%;resize:vertical;min-height:56px;line-height:1.5;}
             <option value="mission">Mission</option>
             <option value="away">Away</option>
           </select>
-          <span style="font-size:12px;color:#888780;">(adjust individuals in roster after)</span>
+          <span style="font-size:12px;color:#888780;">(then change individuals above)</span>
+        </div>
         </div>
         <div id="paste-missing-wrap" style="display:none;margin-bottom:10px;padding:10px 12px;background:#FAEEDA;border:1px solid #FAC775;border-radius:8px;">
           <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;cursor:pointer;">
@@ -1746,8 +1752,40 @@ function previewPaste(){
     tr.innerHTML='<td colspan="5" style="padding:4px 8px;color:#888780;font-size:11px;">…and '+(parsedPasteRows.length-20)+' more</td>';
     tbl.appendChild(tr);
   }
+  renderNewMembersTable(newRows,defaultStatus);
   renderMissingBlock();
   document.getElementById('paste-feedback').textContent='';
+}
+
+// Every new row, untruncated, each with its own status so you can see who you're assigning.
+function renderNewMembersTable(newRows,defaultStatus){
+  const wrap=document.getElementById('paste-new-wrap');
+  wrap.style.display=newRows.length?'block':'none';
+  document.getElementById('paste-new-count2').textContent=newRows.length;
+  const options=Array.from(document.getElementById('paste-default-status').options);
+  // previewPaste re-runs on every keystroke and checkbox; keep picks already made.
+  const nameKey=(first,last)=>(first+'|'+last).toLowerCase();
+  const kept=new Map(Array.from(document.querySelectorAll('.paste-new-status')).map(s=>[s.dataset.key,s.value]));
+  const th='text-align:left;padding:4px 8px;color:#888780;font-weight:500;';
+  document.getElementById('paste-new-table').innerHTML='<tr style="border-bottom:1px solid #e5e5e3;">'
+    +'<th style="'+th+'">Name</th><th style="'+th+'">Age</th><th style="'+th+'">Phone</th><th style="'+th+'">Email</th><th style="'+th+'">Status</th></tr>'
+    +newRows.map(r=>{
+      const age=r.dob?calcAge(r.dob):r.age;
+      const key=nameKey(r.first,r.last);
+      const status=kept.get(key)||defaultStatus;
+      return '<tr style="border-bottom:1px solid #f5f5f4;">'
+        +'<td style="padding:4px 8px;">'+escHtml(r.first+' '+r.last)+(r.notBaptized?' <span style="font-size:10px;color:#888780;">(not baptized)</span>':'')+'</td>'
+        +'<td style="padding:4px 8px;">'+(age!==null&&age!==undefined?age:'—')+'</td>'
+        +'<td style="padding:4px 8px;">'+escHtml(fmtPhone(r.phone)||'—')+'</td>'
+        +'<td style="padding:4px 8px;">'+escHtml(r.email||'—')+'</td>'
+        +'<td style="padding:4px 8px;"><select class="paste-new-status" data-idx="'+parsedPasteRows.indexOf(r)+'" data-key="'+escHtml(key)+'" style="font-size:12px;">'
+        +options.map(o=>'<option value="'+o.value+'"'+(o.value===status?' selected':'')+'>'+escHtml(o.textContent)+'</option>').join('')
+        +'</select></td></tr>';
+    }).join('');
+}
+
+function setAllNewStatus(status){
+  document.querySelectorAll('.paste-new-status').forEach(s=>{s.value=status;});
 }
 
 function confirmPasteImport(){
@@ -1755,11 +1793,13 @@ function confirmPasteImport(){
   const newRows=parsedPasteRows.filter(r=>r.isNew);
   const updateRows=parsedPasteRows.filter(r=>!r.isNew);
   if(!newRows.length&&!updateRows.length){document.getElementById('paste-feedback').textContent='Nothing to import.';return;}
+  const chosenStatus=new Map(Array.from(document.querySelectorAll('.paste-new-status')).map(s=>[parsedPasteRows[+s.dataset.idx],s.value]));
   // add new members
   newRows.forEach(r=>{
+    const status=chosenStatus.get(r)||defaultStatus;
     state.members.push({
       id:uid(),first:r.first,last:r.last,phone:r.phone||'',email:r.email||'',dob:r.dob||null,
-      status:defaultStatus,statusDate:defaultStatus!=='active'?today():null,
+      status,statusDate:status!=='active'?today():null,
       notes:'',lastPrayerRef:r.lastPrayer||null,notBaptized:!!r.notBaptized
     });
   });
